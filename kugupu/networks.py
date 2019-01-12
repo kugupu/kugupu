@@ -2,6 +2,66 @@ import networkx as nx
 import numpy as np
 
 #TODO: kirchhoff index per biggest graph per frame (at diff thresholds)
+def resistance_distance_matrix(network):
+    """
+    Return resistance distance matrix:
+    RD[i,j]= S[i,i]+S[j,j]-2S[i,j]
+    """
+    n = network.order()
+    s = n * nx.laplacian_matrix(network, weight='Hij').todense() + 1
+    sn = n * np.linalg.pinv(s)
+    res_dist = np.zeros((n,n))
+    sn_diag = sn.diagonal()
+    res_dist[:,:] += sn_diag.T
+    res_dist[:,:] += sn_diag
+    res_dist -= 2*sn
+    return res_dist
+
+def admittance_distance_matrix(network):
+    """
+    Return admittance distance matrix:
+    A[i,j]= 1/RD[i,j] if i!=j; 0 if i=j
+    as defined in eq. 4 of J. Phys. Chem. Lett. 2015, 6, 1018-21.
+    """
+    RD = resistance_distance_matrix(network)
+    A = np.zeros(RD.shape)
+    A = 1/RD
+    np.fill_diagonal(A, 0)
+    return A
+
+def kirchhoff_transport_index(network):
+    """
+    Return Kirchhoff 'transport index':
+    Kt = sum A[i,j]/2N^2
+
+    Where
+     A : 2d numpy array, real
+      admittance matrix as in eq. 4 of J. Phys. Chem. Lett. 2015, 6, 1018-21
+     N : int
+      network order
+
+    To avoid double counting of A[i,j], since the matrix is symmetric,
+    we normalize by 2N^2 (and not N^2 as in eq. 5 of
+    J. Phys. Chem. Lett. 2015, 6, 1018-21).
+    """
+
+    A = admittance_distance_matrix(network)
+    Kt = A.sum()
+    Kt = Kt/(2*(network.order()**2))
+
+    return Kt
+
+def kirchhoff_index(network):
+    """ Kirchhoff (Resistance) Index (Kf)
+
+    Kf = 1/2 * sum_i sum_j RD[i,j]
+    Where RD = resistance distance matrix
+
+    """
+    RD = resistance_distance_matrix(network)
+    Kf = RD.sum()*0.5
+
+    return Kf
 
 
 #TODO:return H for a given couple of i and j fragments at a given frame
