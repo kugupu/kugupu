@@ -64,7 +64,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
     return e_frag, v_frag
 
 
-def convert_to_fragment_basis(H_orb, S_orb, e_frag, v_frag):
+def convert_to_fragment_basis(H_orb, e_frag, v_frag):
     """Find Hamiltonian on fragment basis
 
     Parameters
@@ -82,10 +82,10 @@ def convert_to_fragment_basis(H_orb, S_orb, e_frag, v_frag):
     """
     n = e_frag.shape[0]  # number of frags * degeneracy
     H_frag = np.zeros((n, n))
-    S_frag = np.zeros((n, n))
+    #S_frag = np.zeros((n, n))
 
     H_frag[np.diag_indices_from(H_frag)] = e_frag
-    S_frag[np.diag_indices_from(S_frag)] = 1
+    #S_frag[np.diag_indices_from(S_frag)] = 1
 
     # TODO: This probably becomes a single function call somehow
     for i in tqdm(range(n)):
@@ -96,13 +96,29 @@ def convert_to_fragment_basis(H_orb, S_orb, e_frag, v_frag):
         # therefore np.vdot(v_frag[:, i], H) == H.T.dot(v_frag)
         # calculate and reuse this for all j iterations!
         H_pipo = H_orb.T.dot(v_frag[:, i])
-        S_pipo = S_orb.T.dot(v_frag[:, i])
+        #S_pipo = S_orb.T.dot(v_frag[:, i])
         for j in range(i+1, n):
             H_frag[i, j] = H_frag[j, i] = H_pipo.dot(v_frag[:, j])
-            S_frag[i, j] = S_frag[j, i] = S_pipo.dot(v_frag[:, j])
+            #S_frag[i, j] = S_frag[j, i] = S_pipo.dot(v_frag[:, j])
 
-    return H_frag, S_frag
+    return H_frag
 
+def squish_Hij(H_frag, d, n_frag):
+    """
+    Calculate an effective coupling J_eff
+    as in J. Mater. Chem. C, 2016, 4, 3747
+
+    J_eff =  sqrt( sum J**2)/degeneracy
+
+    this reduces the size of Hij from (nfrags * degeneracy, nfrags * degeneracy)
+    to (nfrags * nfrags)
+    """
+
+    Hij_eff = np.zeros((n_frag,n_frag))
+        for i in range(n_frag):
+            for j in range(n_frag):
+                Hij_eff[i,j] = np.sqrt(np.sum(H_frag[d*i:d*(i+1),d*j:d*(j+1)]**2)/d)
+    return Hij_eff
 
 def calculate_H_frag(fragsize, H_orb, S_orb, degeneracy, state):
     """Take orbital basis Hamiltonian and convert to fragment basis
@@ -120,9 +136,9 @@ def calculate_H_frag(fragsize, H_orb, S_orb, degeneracy, state):
 
     Returns
     -------
-    H_frag, S_frag : numpy array
-      intermolecular Hamiltonian and overlap matrices.
-      Will have shape (nfrags * degeneracy, nfrag * degeneracy)
+    Hij_eff : numpy array
+      intermolecular Hamiltonian
+      Will have shape (nfrags * nfrags)
     """
     logger.info("Finding fragment eigenvalues")
     e_frag, v_frag = find_fragment_eigenvalues(H_orb, S_orb,
@@ -131,6 +147,10 @@ def calculate_H_frag(fragsize, H_orb, S_orb, degeneracy, state):
                                                state, degeneracy)
 
     logger.info("Calculating fragment Hamiltonian matrix")
-    H_frag, S_frag = convert_to_fragment_basis(H_orb, S_orb, e_frag, v_frag)
-
-    return H_frag, S_frag
+    H_frag = convert_to_fragment_basis(H_orb, e_frag, v_frag)
+    #TOFINISH
+    #pass nfrags from somewhere
+    #allow for fragments to have different degeneracy
+    #Hij_eff =  squish_Hij(H_frag, nfrags, degeneracy)
+    #it will return Heff once i'm done
+    return H_frag
