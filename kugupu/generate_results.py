@@ -40,14 +40,27 @@ def make_universe(topologyfile, dcdfile):
 
 def read_param_file(param_file):
     """
-    Reads the parameter file needed for network calculation
+    Reads the yaml parameter file
+
+    Parameters
+    ----------
+    param_file : yaml file
+    this should contain:
+     state : string
+      homo or lumo
+     V_cutoff : list of reals
+      energy thresholds in eV
+     nn_cutoff : real
+      cutoff for nearest neighbor search in Å
+     degeneracy : string
+      how many frontier orbitals to consider (including homo/lumo)
     """
     params = yaml.load(open(param_file))
 
     return params
 
 
-def generate_H_frag_trajectory(u, nn_cutoff, degeneracy, state,
+def generate_H_frag_trajectory(u, nn_cutoff, degeneracy=None, state,
                                start=None, stop=None, step=None):
     """Generate Hamiltonian matrix H_frag for each frame in trajectory
 
@@ -57,8 +70,8 @@ def generate_H_frag_trajectory(u, nn_cutoff, degeneracy, state,
       Universe to analyse
     nn_cutoff : float
       maximum distance between dimers to consider neighbours
-    degeneracy : int
-      number of orbitals deep to go
+    degeneracy : int or dict or None
+      number of orbitals deep to go; can be an integer for homo
     state : str
       'HOMO' or 'LUMO'
     start, stop, step : int, optional
@@ -76,6 +89,21 @@ def generate_H_frag_trajectory(u, nn_cutoff, degeneracy, state,
     nframes = len(u.trajectory[start:stop:step])
     logger.info("Processing {} frames".format(nframes))
 
+    if degeneracy is not None:
+        # we need to pass a vector n_frags long
+        if isinstance(degeneracy, int):
+            # if only one value is given the elements are all the same
+            degeneracy = np.full(len(u.atoms.fragments), degeneracy)
+        elif isinstance(degeneracy, dict):
+            # if our system is multi-component,
+            # different residues have different degeneracy
+            deg_arr = np.zeros(len(u.atoms.fragments))
+            for i, frag in enumerate(u.atoms.fragments):
+                # for a molecule with more than 1 residue,
+                #  only the 1st one is checked
+                deg_arr[i] = degeneracy[frag.residues[0].resname]
+            degeneracy = deg_arr
+
     for i, ts in enumerate(u.trajectory[start:stop:step]):
         logger.info("Processing frame {} of {}"
                     "".format(i, nframes))
@@ -85,7 +113,7 @@ def generate_H_frag_trajectory(u, nn_cutoff, degeneracy, state,
         H_orb, S_orb, fragsize = run_all_dimers(u.atoms.fragments, dimers)
 
         H_frag, S_frag = calculate_H_frag(fragsize, H_orb, S_orb,
-                                          degeneracy, state)
+                                          state, degeneracy)
 
         frames.append(ts.frame)
         Hs.append(H_frag)

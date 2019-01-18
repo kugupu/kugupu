@@ -1,6 +1,5 @@
 #parameter file for network algorithm
 state: lumo  # homo or lumo
-degeneracy:  1 # how many states (including homo/lumo) should be considered
 V_cutoff: [0.001,0.005,0.01,0.015,0.02,0.025,0.03,0.035,0.04,0.045,0.05] #eV
-nn_cutoff: 5
-tree_bw: 0.3 # not sure we need it
+nn_cutoff: 5 # Å cufoff for nearest neighbors search
+degeneracy: 1 # number of frontier orbitals to consider for charge transport - including
