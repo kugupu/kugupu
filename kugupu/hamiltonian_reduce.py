@@ -217,7 +217,6 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
     """
     logger.info("Finding fragment eigenvalues")
 
-    degeneracy = find_degeneracy()
     e_frag, v_frag = find_fragment_eigenvalues(H_orb, S_orb,
                                                fragsize.starts, fragsize.stops,
                                                fragsize.n_electrons,
