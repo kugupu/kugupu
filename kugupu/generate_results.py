@@ -60,7 +60,7 @@ def read_param_file(param_file):
     return params
 
 
-def generate_H_frag_trajectory(u, nn_cutoff, degeneracy=None, state,
+def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
                                start=None, stop=None, step=None):
     """Generate Hamiltonian matrix H_frag for each frame in trajectory
 
