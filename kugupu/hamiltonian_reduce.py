@@ -190,9 +190,9 @@ def squish_Hij(H_frag, d, n_frag):
     to (nfrags * nfrags)
     """
     Hij_eff = np.zeros((n_frag,n_frag))
-        for i in range(n_frag):
-            for j in range(n_frag):
-                Hij_eff[i,j] = np.sqrt(np.sum(H_frag[d*i:d*(i+1),d*j:d*(j+1)]**2)/d)
+    for i in range(n_frag):
+        for j in range(n_frag):
+            Hij_eff[i,j] = np.sqrt(np.sum(H_frag[d*i:d*(i+1),d*j:d*(j+1)]**2)/d)
     return Hij_eff
 
 def calculate_H_frag(u.atoms, fragsize, H_orb, S_orb, state, degeneracy=None,):
