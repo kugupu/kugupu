@@ -83,14 +83,15 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
                 hi = homo + 1 + (MAX_DEGEN - 1)
 
         else:
+            deg = degeneracy[frag]
             # if degeneracy is read from parameter file, then every fragment is
             # treated in the same way
             if state.lower() == 'homo':
-                lo = homo - (degeneracy - 1)
+                lo = homo - (deg - 1)
                 hi = homo
             elif state.lower() == 'lumo':
                 lo = homo + 1
-                hi = homo + 1 + (degeneracy - 1)
+                hi = homo + 1 + (deg - 1)
 
         # e - eigenvalues
         # v - eigenvectors
@@ -109,7 +110,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
                 e0 = e[0]
             # iterate over eigenvalues/energies
             # taking whilst less than TOL away
-            for e_val, v_val in zip(e, v):
+            for e_val, v_val in zip(e, v.T):
                 if abs(e_val - e0) < DEGEN_TOL:
                     e_frag.append(e_val)
                     v_frag.append(v_val)
@@ -218,7 +219,7 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
     """
     logger.info("Finding fragment eigenvalues")
 
-    e_frag, v_frag = find_fragment_eigenvalues(H_orb, S_orb,
+    e_frag, v_frag, deg = find_fragment_eigenvalues(H_orb, S_orb,
                                                fragsize.starts, fragsize.stops,
                                                fragsize.n_electrons,
                                                state, degeneracy)
@@ -230,4 +231,4 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
     #allow for fragments to have different degeneracy
     #Hij_eff =  squish_Hij(H_frag, nfrags, degeneracy)
     #it will return Heff once i'm done
-    return H_frag
+    return H_frag, deg

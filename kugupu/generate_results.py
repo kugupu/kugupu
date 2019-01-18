@@ -112,17 +112,15 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
 
         H_orb, S_orb, fragsize = run_all_dimers(u.atoms.fragments, dimers)
 
-        H_frag, S_frag = calculate_H_frag(fragsize, H_orb, S_orb,
+        H_frag, degeneracy = calculate_H_frag(fragsize, H_orb, S_orb,
                                           state, degeneracy)
 
         frames.append(ts.frame)
         Hs.append(H_frag)
-        Ss.append(S_frag)
 
     return KugupuResults(
         frames=np.array(frames),
         hamiltonian=np.stack(Hs),
-        overlap=np.stack(Ss),
     )
 
 
