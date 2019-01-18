@@ -130,7 +130,8 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
                 # therefore there is no data for this fragment
                 continue
             for d in range(degeneracy[frag]):
-                v_frag_arr[i:j, degen_counter] = v_frag.popleft()
+                v_frag_arr[i:j, degen_counter] = v_frag[degen_counter]
+                # poopleft
                 degen_counter += 1
         # dispose of list version
         v_frag = v_frag_arr
