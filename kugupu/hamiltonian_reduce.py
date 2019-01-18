@@ -51,7 +51,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
         auto_deg = True
         e_frag = []
         v_frag = []
-        degeneracy = np.zeros(nfrags)
+        degeneracy = np.zeros(nfrags,dtype=int)
     else:
         auto_deg = False
         degen_counter = 0
