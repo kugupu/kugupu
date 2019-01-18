@@ -195,7 +195,7 @@ def squish_Hij(H_frag, d, n_frag):
             Hij_eff[i,j] = np.sqrt(np.sum(H_frag[d*i:d*(i+1),d*j:d*(j+1)]**2)/d)
     return Hij_eff
 
-def calculate_H_frag(u.atoms, fragsize, H_orb, S_orb, state, degeneracy=None,):
+def calculate_H_frag(u.atoms, fragsize, H_orb, S_orb, state, degeneracy=None):
     """Take orbital basis Hamiltonian and convert to fragment basis
 
     Parameters
