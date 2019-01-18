@@ -110,7 +110,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
             # iterate over eigenvalues/energies
             # taking whilst less than TOL away
             for e_val, v_val in zip(e, v):
-                if abs(e - e0) < DEGEN_TOL:
+                if abs(e_val - e0) < DEGEN_TOL:
                     e_frag.append(e_val)
                     v_frag.append(v_val)
                     degeneracy[frag] += 1
