@@ -112,13 +112,19 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
 
         H_orb, S_orb, fragsize = run_all_dimers(u.atoms.fragments, dimers)
 
-        H_frag, degeneracy = calculate_H_frag(fragsize, H_orb, S_orb,
-                                          state, degeneracy)
+        if degeneracy is None:
+            # first time through with auto degen
+            H_frag, degeneracy = calculate_H_frag(fragsize, H_orb, S_orb,
+                                                  state, degeneracy=None)
+        else:
+            H_frag = calculate_H_frag(fragsize, H_orb, S_orb,
+                                      state, degeneracy)
 
         frames.append(ts.frame)
         Hs.append(H_frag)
 
     return KugupuResults(
+        degeneracy=degeneracy,
         frames=np.array(frames),
         hamiltonian=np.stack(Hs),
     )
