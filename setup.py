@@ -3,9 +3,18 @@ kugupu
 KUGUPUUU!
 """
 from setuptools import setup
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 import versioneer
 
 DOCLINES = __doc__.split("\n")
+
+# Define Cython modules
+extensions = [
+    Extension(name='kugupu.time',
+              sources=['kugupu/time.pyx'],
+    ),
+]
 
 setup(
     # Self-descriptive entries which should always be present
@@ -19,7 +28,7 @@ setup(
 
     # Which Python importable modules should be included when your package is installed
     packages=['kugupu', "kugupu.tests"],
-
+    ext_modules = cythonize(extensions),
     # Optional include package data to ship with your package
     # Comment out this line to prevent the files from being packaged with your software
     # Extend/modify the list to include/exclude other items as need be
