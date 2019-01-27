@@ -13,13 +13,8 @@ DOCLINES = __doc__.split("\n")
 extensions = [
     Extension(name='kugupu.time',
               sources=['kugupu/time.pyx'],
-              language='c++',
-              extra_compile_args = ['-std=c99', '-ffast-math', '-O3', '-funroll-loops',
-                                    #cpp_extra_compile_args=[
-                                    '-std=c++11', '-stdlib=libc++',
-                                    '-mmacosx-version-min=10.9',
-                                    '-stdlib=libc++',
-                                    '-mmacosx-version-min=10.7',
+              extra_compile_args = [
+                  '-std=c99', '-ffast-math', '-O3', '-funroll-loops',
               ]
 
     ),
