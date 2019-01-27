@@ -12,7 +12,7 @@ from . import __version__
 KugupuResults = namedtuple("KugupuResults",
                            ['frames',
                             'H_frag',
-                            'S_frag'])
+                            'degeneracy'])
 
 _DATEFORMAT = '%Y-%m-%d %H:%M:%S'
 

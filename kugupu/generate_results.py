@@ -124,9 +124,9 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
         Hs.append(H_frag)
 
     return KugupuResults(
-        degeneracy=degeneracy,
         frames=np.array(frames),
-        hamiltonian=np.stack(Hs),
+        H_frag=np.stack(Hs),
+        degeneracy=degeneracy,
     )
 
 
