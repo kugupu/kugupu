@@ -100,7 +100,7 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
                 degeneracy[frag] += 1
 
     # reconstruct v_frag
-    v_frag_arr = np.zeros((H_orb.shape[0], sum(degeneracy)),
+    v_frag_arr = np.zeros((H_orb.shape[0], degeneracy.sum()),
                           dtype='complex128')
     degen_counter = 0
     for frag, (i, j) in enumerate(zip(starts, stops)):
@@ -142,8 +142,8 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
     nfrags = len(starts)
 
     degen_counter = 0
-    e_frag = np.zeros((sum(degeneracy)))
-    v_frag = np.zeros((H_orb.shape[0], sum(degeneracy)),
+    e_frag = np.zeros(degeneracy.sum())
+    v_frag = np.zeros((H_orb.shape[0], degeneracy.sum()),
                       dtype='complex128')
 
     for frag, (i, j) in tqdm(enumerate(zip(starts, stops)), total=nfrags):
@@ -174,7 +174,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
                        eigvals=(lo, hi))
 
         e_frag[degen_counter:degen_counter + degeneracy[frag]] = e
-        v_frag[i:j, degen_counter:degen_counter + degeneracy[frag]] = v.T  # .T?
+        v_frag[i:j, degen_counter:degen_counter + degeneracy[frag]] = v
         degen_counter += degeneracy[frag]
 
     return e_frag, v_frag
@@ -262,7 +262,7 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
     auto_degen = degeneracy is None
     if auto_degen:
         logger.info("Determining degeneracy")
-        e_frag, v_frag, deg = find_fragment_eigenvalues_auto_degen(
+        e_frag, v_frag, degeneracy = find_fragment_eigenvalues_auto_degen(
             H_orb, S_orb,
             fragsize.starts, fragsize.stops,
             fragsize.n_electrons,
@@ -286,6 +286,6 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
     #it will return Heff once i'm done
 
     if auto_degen:
-        return H_frag, deg
+        return H_frag, degeneracy
     else:
         return H_frag
