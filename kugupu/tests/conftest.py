@@ -26,6 +26,7 @@ def system():
 
     return top, traj
 
+
 @pytest.fixture
 def u(system):
     sys = mda.Universe(*system)
@@ -44,6 +45,24 @@ def u(system):
         sys.atoms[sys.atoms.masses == m].names = n
 
     return sys
+
+
+@pytest.fixture
+def mini_system():
+    top = os.path.join(DATA_DIR, 'mini.pdb')
+    traj = os.path.join(DATA_DIR, 'mini.dcd')
+    return top, traj
+
+@pytest.fixture
+def mini_u(mini_system):
+    return mda.Universe(*mini_system)
+
+
+@pytest.fixture
+def mini_ix():
+    # these are the fragment indices that make the mini system
+    return [19, 70, 72, 150]
+
 
 @pytest.fixture
 def ref_results():
