@@ -17,14 +17,12 @@ def test_molecule_shifting(u):
     ref_i = frag_i.positions.copy()
     ref_j = frag_j.positions.copy()
 
-    bind_inp = yaehmop.create_bind_inp((frag_i, frag_j), (0, 9))
+    coords = yaehmop.shift_dimer_images(frag_i, frag_j)
 
     # check we didn't alter positions
     assert_equal(ref_i, frag_i.positions)
     assert_equal(ref_j, frag_j.positions)
 
-    coord_lines = bind_inp.split('\n')[6:6 + 372]
-    coords = np.array([c.split()[-3:] for c in coord_lines], dtype=np.float32)
     # the desired shift
     # this has been visually checked to be correct
     des_shift = np.array([0., u.dimensions[1], 0.])
@@ -37,17 +35,16 @@ def test_create_input(u, ref_bind_inp):
     # regression test for bind input for frags(0, 7)
 
     f1, f2 = u.atoms.fragments[0], u.atoms.fragments[7]
-
-    inp = yaehmop.create_bind_inp((f1, f2), (0, 7))
+    pos = yaehmop.shift_dimer_images(f1, f2)
+    inp = yaehmop.create_bind_input(ag=sum(f1, f2),
+                                    pos=pos,
+                                    name='{}-{}'.format(0, 7))
 
     assert inp == ref_bind_inp
 
 
 def test_run_yaehmop(in_tmpdir, ref_bind_inp):
-    with open('inp.bind', 'w') as out:
-        out.write(ref_bind_inp)
-
-    yaehmop.run_bind('inp.bind')
+    yaehmop.run_bind('inp.bind', ref_bind_inp)
 
     assert os.path.exists('inp.bind.out')
     assert os.path.exists('inp.bind.OV')
@@ -57,9 +54,9 @@ def test_run_yaehmop(in_tmpdir, ref_bind_inp):
 def test_parse_yaehmop(u, ref_bind_out, ref_yaehmop_results):
     ag1, ag2 = u.atoms.fragments[0], u.atoms.fragments[7]
 
-    H, S, orb, ele = yaehmop.parse_bind_out(ref_bind_out,
-                                            (0, 7), ag1, ag2,
-                                            keep_i=True, keep_j=True)
+    H, S, orb, ele = yaehmop.parse_yaehmop_out(ref_bind_out,
+                                               (0, 7), ag1, ag2,
+                                               keep_i=True, keep_j=True)
     for k in [(0, 0), (0, 7), (7, 7)]:
         assert k in H
         assert k in S
