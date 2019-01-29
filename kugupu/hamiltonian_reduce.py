@@ -214,7 +214,7 @@ def convert_to_fragment_basis(H_orb, e_frag, v_frag):
         H_pipo = H_orb.T.dot(v_frag[:, i])
         #S_pipo = S_orb.T.dot(v_frag[:, i])
         for j in range(i+1, n):
-            H_frag[i, j] = H_frag[j, i] = H_pipo.dot(v_frag[:, j])
+            H_frag[i, j] = H_frag[j, i] = H_pipo.dot(v_frag[:, j]).real
             #S_frag[i, j] = S_frag[j, i] = S_pipo.dot(v_frag[:, j])
 
     return H_frag
