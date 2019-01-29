@@ -19,7 +19,7 @@ from loguru import logger
 logger.stop()
 logger.start(sys.stderr, format="{time} {level} {message}", level="INFO")
 
-from .traj_io import KugupuResults, save_results, load_results
+from .results_io import KugupuResults, save_results, load_results
 from . import time
 from . import dimers
 from . import yaehmop

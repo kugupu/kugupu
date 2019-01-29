@@ -18,12 +18,12 @@ _DATEFORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 def save_results(results, filename):
-    """Save results to HDF5 file
+    """Save Kugupu results to HDF5 file
 
     Parameters
     ----------
     results : kugupu.Results namedtuple
-      finished results to save
+      finished results to save to file
     filename : str
       filename, must not yet exist.  '.hdf5' will be appended
       if not present
@@ -38,11 +38,11 @@ def save_results(results, filename):
 
         f['frames'] = results.frames
         f['H_frag'] = results.H_frag
-        f['S_frag'] = results.S_frag
+        f['degeneracy'] = results.degeneracy
 
 
 def load_results(filename):
-    """Load results from HDF5 file
+    """Load Kugupu results from HDF5 file
 
     Parameters
     ----------
@@ -66,6 +66,10 @@ def load_results(filename):
                      "".format(f.attrs['kugupu_version']))
         idx = f['frames'][()]
         H_frag = f['H_frag'][()]
-        S_frag = f['S_frag'][()]
+        deg = f['degeneracy'][()]
 
-    return KugupuResults(idx, H_frag, S_frag)
+    return KugupuResults(
+        frames=idx,
+        H_frag=H_frag,
+        degeneracy=deg,
+    )
