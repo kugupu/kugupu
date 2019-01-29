@@ -17,16 +17,16 @@ KugupuResults = namedtuple("KugupuResults",
 _DATEFORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-def save_results(results, filename):
+def save_results(filename, results):
     """Save Kugupu results to HDF5 file
 
     Parameters
     ----------
-    results : kugupu.Results namedtuple
-      finished results to save to file
     filename : str
       filename, must not yet exist.  '.hdf5' will be appended
       if not present
+    results : kugupu.Results namedtuple
+      finished results to save to file
     """
     if not filename.endswith('.hdf5'):
         filename += '.hdf5'

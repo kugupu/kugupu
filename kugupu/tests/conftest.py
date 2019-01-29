@@ -65,8 +65,13 @@ def mini_ix():
 
 
 @pytest.fixture
-def ref_results():
-    return kgp.load_results(os.path.join(DATA_DIR, 'full_traj'))
+def results_file():
+    return os.path.join(DATA_DIR, 'full_traj.hdf5')
+
+
+@pytest.fixture
+def ref_results(results_file):
+    return kgp.load_results(results_file)
 
 
 @pytest.fixture
