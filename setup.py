@@ -15,8 +15,8 @@ extensions = [
               sources=['kugupu/time.pyx'],
               extra_compile_args = [
                   '-std=c99', '-ffast-math', '-O3', '-funroll-loops',
-              ]
-
+              ],
+              define_macros=[('CYTHON_TRACE', '1')],
     ),
 ]
 
@@ -32,7 +32,9 @@ setup(
 
     # Which Python importable modules should be included when your package is installed
     packages=['kugupu', "kugupu.tests"],
-    ext_modules = cythonize(extensions),
+    ext_modules = cythonize(extensions,
+                            compiler_directives={'linetrace': True},
+    ),
     # Optional include package data to ship with your package
     # Comment out this line to prevent the files from being packaged with your software
     # Extend/modify the list to include/exclude other items as need be
