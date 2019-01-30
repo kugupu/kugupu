@@ -1,7 +1,6 @@
 """runs the whole thing from head to toe"""
 
 import yaml
-import shutil
 import numpy as np
 import MDAnalysis as mda
 
@@ -11,15 +10,6 @@ from .dimers import find_dimers
 from .yaehmop import run_all_dimers
 from .hamiltonian_reduce import calculate_H_frag
 from .networks import find_networks
-
-
-def check_exists():
-    """
-    Checks if yaehmop executable is in the path
-    """
-    if shutil.which('yaehmop') is None:
-        raise NameError("yaehmop executable not found!\n"
-                        "add yaehmop path to your .bash_profile")
 
 
 def make_universe(topologyfile, dcdfile):

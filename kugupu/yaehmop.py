@@ -4,12 +4,20 @@
 from collections import Counter, namedtuple
 from scipy import sparse
 import numpy as np
+import shutil
 import subprocess
 import os
 from tqdm import tqdm
 from MDAnalysis.lib import distances
+import warnings
 
 from . import logger
+
+# expected binary to run yaehmop tight binding calculation
+YAEHMOP_BIN = 'eht_bind'
+if shutil.which(YAEHMOP_BIN) is None:
+    warnings.warn("Could not find eht_bind in path")
+    # if not found, can set yaehmop.YAEHMOP_BIN to specify
 
 # contains information on how to index atomic orbital matrices
 FragSizes = namedtuple('FragSizes',
@@ -102,7 +110,7 @@ def run_bind(base, bind_input):
         out.write(bind_input)
 
     logger.debug("Running yaehmop")
-    ret = subprocess.run('yaehmop {}'.format(base),
+    ret = subprocess.run('{} {}'.format(YAEHMOP_BIN, base),
                          shell=True,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
