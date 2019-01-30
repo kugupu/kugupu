@@ -25,7 +25,7 @@ from . import dimers
 from . import yaehmop
 from . import networks
 from . import hamiltonian_reduce
-from . import generate_results
-from .generate_results import generate_H_frag_trajectory
-
+from .generate_results import generate_H_frag_trajectory, read_param_file
+from . import cli
+from . import visualise
 # logger.start(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")
