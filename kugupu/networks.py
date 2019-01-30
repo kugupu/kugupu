@@ -121,6 +121,26 @@ def contacts(fragments, thresh, graphs, full=True):
 
     return average_nc, n_contacts
 
+
+def H_address_to_fragment(degeneracy):
+    """Create an array for mapping H_frag indices to fragment indices
+
+    Parameters
+    ----------
+    degeneracy : numpy array
+      number of degenerate states per fragment
+
+    Returns
+    -------
+    mapping : numpy array
+      array relating H_frag indices to fragment indices
+      ie mapping[21] reveals which fragment index molecular
+      orbital 21 belongs to.  mapping will have the length of
+      the size of the H_frag matrix.
+    """
+    return np.repeat(np.arange(degeneracy.shape[0]), degeneracy)
+
+
 def find_networks(fragments, H, degeneracy, thresh_list):
     """Find connectivity matrix
 
@@ -130,7 +150,7 @@ def find_networks(fragments, H, degeneracy, thresh_list):
       contains coordinates of every molecule in the system
     H : np.array
       Hamiltonian matrix between fragment states
-    degeneracy : int
+    degeneracy : numpy array
       number of states for each fragment
     thresh_list : list of float
       different threshold values to build networks for
@@ -139,39 +159,39 @@ def find_networks(fragments, H, degeneracy, thresh_list):
     -------
     graphs : dictionary of list of nx.Graph
       for each threshold value, returns a list of networkx Graphs
-      refer to fragment ids
+      refer to fragment ids.  Each list of Graph is sorted by size
     """
-
-    # turns list of fragments into numpy array to allow indexing
+    # turns list of fragments into numpy array to allow fancy indexing
     frag_arr = np.empty(len(fragments), dtype=object)
     frag_arr[:] = fragments
 
+    # only interested in absolute values, plus we want copy of data
+    H_ij = np.abs(H)
     # remove diagonal from H
-    H_ij=H
     np.fill_diagonal(H_ij, 0)
 
-    graphs = {}
+    H_map = H_address_to_fragment(degeneracy)
 
+    graphs = {}
     for thresh in thresh_list:
         g = nx.Graph()
         #TODO edge values should be abs(H)
         g.add_nodes_from(frag_arr)
 
-        i, j = np.where(abs(H) > thresh)
-        # divide indices by degeneracy to find fragment id
-        i //= degeneracy
-        j //= degeneracy
+        i, j = np.where(H_ij > thresh)
+        # convert MO index to fragment index
+        i, j = H_map[i], H_map[j]
 
         frag_i = frag_arr[i]
         frag_j = frag_arr[j]
 
         # add fragments to a network if their H is above threshold
-        g.add_weighted_edges_from(zip(frag_i, frag_j, np.abs(H_ij[i,j].real)),
+        g.add_weighted_edges_from(zip(frag_i, frag_j, H_ij[i,j]),
                                   weight='Hij')
 
         # returns a dictionary where thresholds are keys, and values are
         # sorted lists of networks (the biggest is first)
         graphs[thresh] = sorted(nx.connected_component_subgraphs(g),
-                              key = lambda x: len(x),
-                              reverse = True)
+                                key=lambda x: len(x),
+                                reverse=True)
     return graphs
