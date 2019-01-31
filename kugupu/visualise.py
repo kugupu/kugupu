@@ -95,22 +95,45 @@ def gather_network(g):
         done.add(center)
 
 
-def draw_network(g):
-    """Draw a coupling network with nglview"""
+def draw_network(network, view=None, color='r',
+                 show_molecules=True):
+    """Draw a coupling network with nglview in a Jupyter notebook
+
+    Parameters
+    ----------
+    network : networkx.Graph
+      molecular graph to show
+    view : nglview.NGLWidget, optional
+      viewer to draw molecule onto.  If None a new one
+      will be created and returned
+    color : str, optional
+      color to draw the network in, default red
+    show_molecules : bool, optional
+      whether the show the atomic representation (default True)
+
+    Returns
+    -------
+    view : nglview.NGLWidget
+      the nglview object showing the molecule
+    """
     import nglview as nv
 
-    gather_network(g)
+    # move contents of network into primary unit cell
+    gather_network(network)
+    frags = list(network.nodes())
 
-    frags = list(g.nodes())
+    if view is None:
+        view = nv.NGLWidget()
 
-    # draw all fragments except hydrogens
-    view = nv.show_mdanalysis(sum(frags).select_atoms('prop mass > 2.0'))
-    view.clear_representations()
-    view.add_ball_and_stick(opacity=0.5)
+    if show_molecules:
+        view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
 
-    draw_fragment_centers(view, frags, color='g')
-    draw_fragment_links(view, frags, g.edges(), 'g')
+    #view.clear_representations()
+    #view.add_ball_and_stick(opacity=0.5)
 
-    view.add_unitcell()
+    draw_fragment_centers(view, frags, color=color)
+    draw_fragment_links(view, frags, network.edges(), color=color)
+
+    #view.add_unitcell()
 
     return view
