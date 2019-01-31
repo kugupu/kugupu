@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""kugupu - molecular coupling networks
+
+Usage:
+  kugupu -h | --help
+  kugupu --version
+  kugupu generate_hamiltonians <top> <trj> <settings> <output>
+  kugupu generate_parameters
+
+Options:
+  -h --help     Show program help
+  --version     Show program version
+"""
+import docopt
+import kugupu as kgp
+
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__, version=kgp.__version__)
+    kgp.logger.info(args)
+    if args['generate_hamiltonians']:
+        kgp.cli.cli_generate_hamiltonians(
+            args['<top>'], args['<trj>'],
+            args['<settings>'], args['<output>'],
+        )

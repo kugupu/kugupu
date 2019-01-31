@@ -32,6 +32,7 @@ setup(
 
     # Which Python importable modules should be included when your package is installed
     packages=['kugupu', "kugupu.tests"],
+    scripts=['bin/kugupu'],
     ext_modules = cythonize(extensions,
                             compiler_directives={'linetrace': True},
     ),

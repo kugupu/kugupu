@@ -1,23 +1,47 @@
-"""Cli goes here"""
+import MDAnalysis as mda
+import yaml
 
-def cli_kugupu(dcdfile, topologyfile, param_file):
+from . import generate_H_frag_trajectory
+from . import save_results
+
+def make_Universe(topfile, trjfile):
+    """Make a Universe and check it has required attributes
+
+    Universes require:
+      - bonds
+      - masses
+    """
+    u = mda.Universe(topfile, trjfile)
+    # todo, check attributes
+    return u
+
+
+def read_settings(fn):
+    """Read yaml settings and check required fields exist"""
+    with open(fn, 'r') as f:
+        settings = yaml.load(f)
+    # todo check keys exist and are valid
+    return settings
+
+
+def cli_generate_hamiltonians(topfile, trjfile, param_file, output):
     """Command line entry to Kugupu
 
     Parameters
     ----------
-    dcdfile, topologyfile : str
-      inputs to MDAnalysis
+    topfile, trjfile : str
+      inputs to MDAnalysis Universe
     param_file : str
       filename which holds run settings
+    output : str
+      where to output results to
     """
-    #creates universe object from trajectory
-    u = make_universe(topologyfile, dcdfile)
-    # returns parameter dictionary from parameter yaml file
-    params = read_param_file(param_file)
+    # TODO:
+    # check results file will be available before calculation
 
-    hams = generate_traj_H_frag(u, **params)
+    u = make_Universe(topfile, trjfile)
+    params = read_settings(param_file)
 
-    # collects output from entire trajectory into a pandas dataframe
-    dataframe = run_analysis(H_frag, networks)
+    hams = generate_H_frag_trajectory(u, **params)
 
-    write_shizznizz(dataframe)
+    save_results(output, hams)
