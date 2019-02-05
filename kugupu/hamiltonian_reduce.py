@@ -12,7 +12,7 @@ MAX_DEGEN = 20
 DEGEN_TOL = 0.02
 
 
-def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
+def find_fragment_eigenvalues_auto_degen(H_orb, S_orb,
                                          n_electrons, state,
                                          max_degeneracy=None,
                                          degeneracy_tolerance=None):
@@ -22,8 +22,6 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
     ----------
     H_orb, S_orb : scipy.sparse matrix
       Hamiltonian and Overlap matrix for all orbitals
-    starts, stops : array
-      indices to find fragment values in matrices, shape (nfrags,)
     n_electrons : array
       number of electrons in each fragment, shape (nfrags,)
     state : str
@@ -43,27 +41,22 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
     degeneracy : np.array
       degeneracy per fragment
     """
-    nfrags = len(starts)
+    nfrags = len(n_electrons)
     if max_degeneracy is None:
         max_degeneracy = MAX_DEGEN
     if degeneracy_tolerance is None:
         degeneracy_tolerance = DEGEN_TOL
 
     # we don't know how big these will be since we allow degeneracy to
-    # fluctuate, so for now e_frag, v_frag are created as lists
+    # fluctuate, so for now e_frag is created as a list
     e_frag = []
-    v_frag = []
+    v_frag = dict()
     degeneracy = np.zeros(nfrags, dtype=int)
 
-    for frag, (i, j) in tqdm(enumerate(zip(starts, stops)), total=nfrags):
-        if not (j - i):
-            # if fragment had no dimer pairing, we never ran it
-            # therefore there is no data for this fragment
-            continue
-
+    for frag in tqdm(range(nfrags)):
         # grab section relevant to fragment *frag*
-        frag_H = H_orb[i:j, i:j].real.todense()
-        frag_S = S_orb[i:j, i:j].real.todense()
+        frag_H = H_orb[frag, frag].real.todense()
+        frag_S = S_orb[frag, frag].real.todense()
 
         # figure out which eigenvalues we want
         homo = int(n_electrons[frag] / 2) - 1
@@ -81,7 +74,7 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
         # v - eigenvectors
         # grab only (lo->hi) eigenvalues
         e, v = linalg.eigh(frag_H, frag_S, lower=False,
-                       eigvals=(lo, hi))
+                           eigvals=(lo, hi))
 
         # eigenvalues (orbital energies) are sorted
         if state.lower() == 'homo':
@@ -93,29 +86,18 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb, starts, stops,
             e0 = e[0]
         # iterate over eigenvalues/energies
         # taking whilst less than TOL away
-        for e_val, v_val in zip(e, v.T):
+        for e_val in e:
             if abs(e_val - e0) < degeneracy_tolerance:
                 e_frag.append(e_val)
-                v_frag.append(v_val)
                 degeneracy[frag] += 1
-
-    # reconstruct v_frag
-    v_frag_arr = np.zeros((H_orb.shape[0], degeneracy.sum()),
-                          dtype='complex128')
-    degen_counter = 0
-    for frag, (i, j) in enumerate(zip(starts, stops)):
-        if not (j - i):
-            continue
-        for d in range(degeneracy[frag]):
-            v_frag_arr[i:j, degen_counter] = v_frag[degen_counter]
-            degen_counter += 1
+        v_frag[frag] = v[:, :degeneracy[frag]]
 
     e_frag = np.array(e_frag)
 
     return e_frag, v_frag_arr, degeneracy
 
 
-def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
+def find_fragment_eigenvalues(H_orb, S_orb, n_electrons, state,
                               degeneracy):
     """Find eigenvalues and vectors for each fragments orbitals
 
@@ -123,8 +105,6 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
     ----------
     H_orb, S_orb : scipy.sparse matrix
       Hamiltonian and Overlap matrix for all orbitals
-    starts, stops : array
-      indices to find fragment values in matrices, shape (nfrags,)
     n_electrons : array
       number of electrons in each fragment, shape (nfrags,)
     state : str
@@ -136,25 +116,19 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
     -------
     e_frag : np.array
       eigenvalues of wavefunction
-    v_frag : np.array
-      eigenvectors of wavefunction
+    v_frag : dict
+      mapping of fragment index to eigenvectors of wavefunction
     """
-    nfrags = len(starts)
+    nfrags = len(n_electrons)
 
     degen_counter = 0
     e_frag = np.zeros(degeneracy.sum())
-    v_frag = np.zeros((H_orb.shape[0], degeneracy.sum()),
-                      dtype='complex128')
+    v_frag = dict()
 
-    for frag, (i, j) in tqdm(enumerate(zip(starts, stops)), total=nfrags):
-        if not (j - i):
-            # if fragment had no dimer pairing, we never ran it
-            # therefore there is no data for this fragment
-            continue
-
+    for frag in tqdm(range(nfrags)):
         # grab section relevant to fragment *frag*
-        frag_H = H_orb[i:j, i:j].real.todense()
-        frag_S = S_orb[i:j, i:j].real.todense()
+        frag_H = H_orb[frag, frag].real.todense()
+        frag_S = S_orb[frag, frag].real.todense()
 
         # figure out which eigenvalues we want
         homo = int(n_electrons[frag] / 2) - 1
@@ -174,50 +148,50 @@ def find_fragment_eigenvalues(H_orb, S_orb, starts, stops, n_electrons, state,
                        eigvals=(lo, hi))
 
         e_frag[degen_counter:degen_counter + degeneracy[frag]] = e
-        v_frag[i:j, degen_counter:degen_counter + degeneracy[frag]] = v
+        v_frag[frag] = v.real
         degen_counter += degeneracy[frag]
 
     return e_frag, v_frag
 
 
-def convert_to_fragment_basis(H_orb, e_frag, v_frag):
+def convert_to_fragment_basis(dimers, degeneracy, H_orb, e_frag, v_frag):
     """Find Hamiltonian on fragment basis
 
     Parameters
     ----------
-    H_orb, S_orb : sparse matrices
+    dimers : dict
+      which dimers were ran
+    degneracy : numpy array
+      for each fragment, its
+    H_orb : dict of sparse matrices
       Hamiltonian, Overlap for all orbital basis
-    e_frag, v_frag : array
-      eigenvalues and eigenvectors of wavefunction
+    e_frag : array
+      eigenvalues of wavefunction
+    v_frag : dict
+      eigenvectors of wavefunction
 
     Returns
     -------
-    H_frag, S_frag : np array
-      Hamiltonian and Overlap on the basis of fragments
+    H_frag : numpy array
+      coupling matrix on the basis of fragments
       Will be square with size (nfrags * degeneracy, nfrags * degeneracy)
     """
+    # arrays for indexing Hij
+    stops = np.cumsum(degeneracy)
+    starts = np.r_[0, stops[:-1]]
+
     n = e_frag.shape[0]  # number of frags * degeneracy
     H_frag = np.zeros((n, n))
-    #S_frag = np.zeros((n, n))
-
     H_frag[np.diag_indices_from(H_frag)] = e_frag
-    #S_frag[np.diag_indices_from(S_frag)] = 1
 
     # TODO: This probably becomes a single function call somehow
-    for i in tqdm(range(n)):
-        # technically we want:
-        # v_frag[:, i].conj().T <dot> H <dot> v_frag[:, j]
-        # H is a sparse matrix, therefore we want to use its methods!
-        # because H is Hermitian: H.T is the conjugate
-        # therefore np.vdot(v_frag[:, i], H) == H.T.dot(v_frag)
-        # calculate and reuse this for all j iterations!
-        H_pipo = H_orb.T.dot(v_frag[:, i])
-        #S_pipo = S_orb.T.dot(v_frag[:, i])
-        for j in range(i+1, n):
-            H_frag[i, j] = H_frag[j, i] = H_pipo.dot(v_frag[:, j]).real
-            #S_frag[i, j] = S_frag[j, i] = S_pipo.dot(v_frag[:, j])
+    for x, y in dimers:
+        H_pipo = H_orb[x, y].T.dot(v_frag[x]).T.dot(v_frag[y])
+        H_frag[starts[x]:stops[x], starts[y]:stops[y]] = H_pipo
+        H_frag[starts[y]:stops[y], starts[x]:stops[x]] = H_pipo.T
 
     return H_frag
+
 
 def squish_Hij(H_frag, d, n_frag):
     """
@@ -236,14 +210,16 @@ def squish_Hij(H_frag, d, n_frag):
     return Hij_eff
 
 
-def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
+def calculate_H_frag(dimers, fragsize, H_orb, S_orb, state, degeneracy=None):
     """Take orbital basis Hamiltonian and convert to fragment basis
 
     Parameters
     ----------
+    dimers : dict
+      mapping of fragment indices to fragment AtomGroups
     fragsize : namedtuple
       info on fragment orbital size from tight binding calculation
-    H_orb, S_orb : sparse matrix
+    H_orb, S_orb : dicts of sparse matrices
       Hamiltonian and overlap matrices on orbital basis
     degeneracy : np.ndarray or None
       how many orbitals deep to go for each molecule.
@@ -272,13 +248,12 @@ def calculate_H_frag(fragsize, H_orb, S_orb, state, degeneracy=None):
 
     e_frag, v_frag = find_fragment_eigenvalues(
         H_orb, S_orb,
-        fragsize.starts, fragsize.stops,
         fragsize.n_electrons,
         state, degeneracy
     )
 
     logger.info("Calculating fragment Hamiltonian matrix")
-    H_frag = convert_to_fragment_basis(H_orb, e_frag, v_frag)
+    H_frag = convert_to_fragment_basis(dimers, degeneracy, H_orb, e_frag, v_frag)
     #TOFINISH
     #pass nfrags from somewhere
     #allow for fragments to have different degeneracy

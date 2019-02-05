@@ -291,32 +291,6 @@ def parse_fragment_yaehmop_out(base, ag):
     return H_mat, S_mat, norbs, neles
 
 
-def combine_matrices(nfrags, H_pieces, S_pieces):
-    """Combine dimer matrices into entire system matrices
-
-    Parameters
-    ----------
-    nfrags : int
-      total number of fragments in system
-    H_pieces, S_pieces : dict
-      mapping of dimer indices to sparse matrix
-
-    Returns
-    -------
-    H, S : CSR sparse arrays
-      combined version of H_pieces and S_pieces
-    """
-    def construct_big_matrix(pieces):
-        return sparse.bmat([[pieces.get((i, j), None) for j in range(nfrags)]
-                            for i in range(nfrags)],
-                           format='csr', dtype=np.float64)
-
-    H = construct_big_matrix(H_pieces)
-    S = construct_big_matrix(S_pieces)
-
-    return H, S
-
-
 def find_fragment_sizes(nfrags, norbitals, nelectrons):
     """Calculate offsets to index different fragments in orbital matrices
 
@@ -502,8 +476,5 @@ def run_all_dimers(fragments, dimers):
     logger.info('Finding fragment sizes')
     fragsize = find_fragment_sizes(len(fragments), norbitals, nelectrons)
 
-    logger.info('Combining matrices')
-    H_orb, S_orb = combine_matrices(len(fragments), H_coords, S_coords)
-
     logger.info('Done with yaehmop')
-    return H_orb, S_orb, fragsize
+    return H_coords, S_coords, fragsize

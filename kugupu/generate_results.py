@@ -104,10 +104,12 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
 
         if degeneracy is None:
             # first time through with auto degen
-            H_frag, degeneracy = calculate_H_frag(fragsize, H_orb, S_orb,
+            H_frag, degeneracy = calculate_H_frag(dimers, fragsize,
+                                                  H_orb, S_orb,
                                                   state, degeneracy=None)
         else:
-            H_frag = calculate_H_frag(fragsize, H_orb, S_orb,
+            H_frag = calculate_H_frag(dimers, fragsize,
+                                      H_orb, S_orb,
                                       state, degeneracy)
 
         frames.append(ts.frame)
