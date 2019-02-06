@@ -96,7 +96,7 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
 
     for i, ts in enumerate(u.trajectory[start:stop:step]):
         logger.info("Processing frame {} of {}"
-                    "".format(i, nframes))
+                    "".format(i + 1, nframes))
 
         dimers = find_dimers(u.atoms.fragments, nn_cutoff)
 
@@ -115,6 +115,7 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
         frames.append(ts.frame)
         Hs.append(H_frag)
 
+    logger.info('Done!')
     return KugupuResults(
         frames=np.array(frames),
         H_frag=np.stack(Hs),
