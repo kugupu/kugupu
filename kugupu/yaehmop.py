@@ -234,7 +234,7 @@ def parse_yaehmop_out(base, dimer_indices,
 
     Returns
     -------
-    H_mats, S_mats : dict of sparse.coo_matrix
+    H_mats, S_mats : dict of matrices
     norbitals, nelectrons : dict of frag index to value
     """
     orbitals, electrons = parse_bind_out(base + '.out')
@@ -251,17 +251,22 @@ def parse_yaehmop_out(base, dimer_indices,
 
     H_mats = {}
     S_mats = {}
-    for fn, mats in ([base + '.OV', S_mats],
-                     [base + '.HAM', H_mats]):
-        bigmat = parse_yaehmop_binary_out(fn)
-        # split into smaller matrices, then make sparse
+
+    big_H = parse_yaehmop_binary_out(base + '.HAM')
+    H_mats[i, j] = sparse.csr_matrix(big_H[:size_i, size_i:])
+    if keep_i:
+        H_mats[i, i] = big_H[:size_i, :size_i]
+    if keep_j:
+        H_mats[j, j] = big_H[size_i:, size_i:]
+
+    if keep_i or keep_j:
+        # only parse overlap matrix if we are keeping a self contribution
+        big_S =  parse_yaehmop_binary_out(base + '.OV')
+
         if keep_i:
-            mats[i, i] = sparse.coo_matrix(bigmat[:size_i, :size_i])
-        mats[i, j] = sparse.coo_matrix(bigmat[:size_i, size_i:])
-        # j-i matrix is always zeros (matrix is triu)
-        #mats[j, i] = sparse.coo_matrix(bigmat[size_i:, :size_i])
+            S_mats[i, i] = big_S[:size_i, :size_i]
         if keep_j:
-            mats[j, j] = sparse.coo_matrix(bigmat[size_i:, size_i:])
+            S_mats[j, j] = big_S[size_i:, size_i:]
 
     return H_mats, S_mats, norbitals, nelectrons
 
@@ -278,15 +283,15 @@ def parse_fragment_yaehmop_out(base, ag):
 
     Returns
     -------
-    H_mat, S_mat : sparse.coo_matrix
+    H_mat, S_mat : numpy arrays
       Hamiltonian and overlap on Atomic basis
     norbitals, nelectrons : int
       number of orbitals and valence electrons in system
     """
     orbitals, electrons = parse_bind_out(base + '.out')
     norbs, neles = count_orbitals(ag, orbitals, electrons)
-    H_mat = sparse.coo_matrix(parse_yaehmop_binary_out(base + '.HAM'))
-    S_mat = sparse.coo_matrix(parse_yaehmop_binary_out(base + '.OV'))
+    H_mat = parse_yaehmop_binary_out(base + '.HAM')
+    S_mat = parse_yaehmop_binary_out(base + '.OV')
 
     return H_mat, S_mat, norbs, neles
 
@@ -398,7 +403,7 @@ def run_single_dimer(ags, indices, keep_i, keep_j):
 
     Returns
     -------
-    H_frag, S_frag : dict of sparse.csr_matrix
+    H_frag, S_frag : dict of sparse.csr_matrix/numpy.array
       dict of contributions for different (i,j) pairs
     orb, ele : dicts
       fragment index to orbital size and number of valence electrons
@@ -434,11 +439,11 @@ def run_all_dimers(fragments, dimers):
 
     Returns
     -------
-    H_orb, S_orb, fragsize
-      H_orb - csr sparse Hamiltonian matrix
-      S_orb - csr sparse overlap matrix
-      fragsize - namedtuple with attributes 'starts', 'stops', 'sizes' and
-        'n_electrons' which can be indexed using fragment ids (0..nfrags-1)
+    H_orb - dict of csr sparse (off diagonal) or numpy arrays (self) representing
+            Hamiltonian matrices
+    S_orb - dict of numpy arrays of overlap matrix
+    fragsize - namedtuple with attributes 'starts', 'stops', 'sizes' and
+          'n_electrons' which can be indexed using fragment ids (0..nfrags-1)
     """
     logger.info('Starting yaehmop calculation for {} dimers'.format(len(dimers)))
     # keep track of which fragment ids we've seen once
@@ -452,7 +457,7 @@ def run_all_dimers(fragments, dimers):
     nelectrons = dict()
 
     for (i, j), ags in tqdm(sorted(dimers.items())):
-        # only keep i-i contribution once
+        # only keep each self contribution once
         keep_i = not i in done
         keep_j = not j in done
         done.add(i)
