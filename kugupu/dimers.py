@@ -1,6 +1,5 @@
-import itertools
+import numpy as np
 from MDAnalysis.lib import distances
-from tqdm import tqdm
 
 from . import logger
 
@@ -27,23 +26,21 @@ def find_dimers(fragments, cutoff):
     dimers = {}
 
     nfrags = len(fragments)
-    npairs = nfrags * (nfrags - 1) // 2
-    for i, j in tqdm(itertools.combinations(range(nfrags), 2),
-                     total=npairs):
-        frag_i, frag_j = fragments[i], fragments[j]
+    # indices of atoms within cutoff of each other
+    idx = distances.self_capped_distance(sum(fragments).positions,
+                                         max_cutoff=cutoff,
+                                         box=fragments[0].dimensions,
+                                         return_distances=False)
+    fragsizes = [len(f) for f in fragments]
+    # translation array from atom index to fragment index
+    translation = np.repeat(np.arange(nfrags), fragsizes)
+    # this array now holds pairs of fragment indices
+    fragidx = translation[idx]
+    # remove self contributions (i==j) and don't double count (i<j)
+    fragidx = fragidx[fragidx[:, 0] < fragidx[:, 1]]
 
-        da = distances.distance_array(frag_i.positions,
-                                      frag_j.positions,
-                                      frag_i.dimensions)
-        if (da < cutoff).any():
-            dimers[(i, j)] = (frag_i, frag_j)
-
-        #da = distances.capped_distance(frag_i.positions,
-        #                               frag_j.positions,
-        #                               max_cutoff=cutoff,
-        #                               return_distances=False)
-        #if len(da):
-        #    dimers[(i, j)] = (frag_i, frag_j)
+    dimers = {(i, j): (fragments[i], fragments[j])
+              for i, j in fragidx}
 
     logger.info("Found {} dimers".format(len(dimers)))
 
