@@ -11,6 +11,8 @@ from tqdm import tqdm
 from MDAnalysis.lib import distances
 import warnings
 
+import yaehmop
+
 from . import logger
 
 # expected binary to run yaehmop tight binding calculation
@@ -183,7 +185,21 @@ def parse_bind_out(fn):
     return orbitals, valence_electrons
 
 
-def count_orbitals(ag, orbitals, electrons):
+ORBITALS = {
+    'H': 1,
+    'C': 4,
+    'S': 4,
+    'O': 4,
+    'N': 4,
+}
+ELECTRONS = {
+    'C': 4,
+    'H': 1,
+    'S': 6,
+    'O': 6,
+    'N': 5,
+}
+def count_orbitals(ag):
     """Count the number of orbitals and valence electrons in an AG
 
     Parameters
@@ -201,9 +217,9 @@ def count_orbitals(ag, orbitals, electrons):
     # number of each element
     count = Counter(ag.names)
     # number of orbitals in fragment
-    norbitals = sum(n_e * orbitals[e] for e, n_e in count.items())
+    norbitals = sum(n_e * ORBITALS[e] for e, n_e in count.items())
     # number of valence electrons in fragment
-    nelectrons = sum(n_e * electrons[e] for e, n_e in count.items())
+    nelectrons = sum(n_e * ELECTRONS[e] for e, n_e in count.items())
 
     return norbitals, nelectrons
 
@@ -376,15 +392,9 @@ def run_single_fragment(ag, index):
     logger.debug('Calculating lone fragment {}'.format(index))
     base = '{}.bind'.format(index)
 
-    bind_input = create_bind_input(ag, ag.positions, str(index))
-
-    completed_proc = run_bind(base, bind_input)
-
-    logger.debug('Parsing yaehmop output')
-    H_mat, S_mat, norbitals, nelectrons = parse_fragment_yaehmop_out(
-        base, ag)
-
-    cleanup_output(base)
+    H_mat, S_mat = yaehmop.run_bind(ag.positions.astype(np.float64),
+                                    list(ag.names), 0.0)
+    norbitals, nelectrons = count_orbitals(ag)
 
     return H_mat, S_mat, norbitals, nelectrons
 
@@ -409,22 +419,32 @@ def run_single_dimer(ags, indices, keep_i, keep_j):
       fragment index to orbital size and number of valence electrons
     """
     logger.debug('Calculating dimer {}'.format(indices))
+    i, j = indices
     ag_i, ag_j = ags
     pos = shift_dimer_images(ag_i, ag_j)
 
-    name = '{}-{}'.format(*indices)
-    bind_input = create_bind_input(sum(ags), pos, name)
-    base = name + '.bind'
-    completed_proc = run_bind(base, bind_input)
+    H_mat, S_mat = yaehmop.run_bind(pos.astype(np.float64),
+                                    list((ag_i + ag_j).names), 0.0)
 
-    logger.debug("Parsing yaehmop output")
-    H_frag, S_frag, orb, ele = parse_yaehmop_out(base, indices,
-                                                 ag_i, ag_j,
-                                                 keep_i, keep_j)
+    orb_i, ele_i = count_orbitals(ag_i)
+    orb_j, ele_j = count_orbitals(ag_j)
+    orb = {i: orb_i, j: orb_j}
+    ele = {i: ele_i, j: ele_j}
 
-    cleanup_output(base)
+    size_i = orb[i]
 
-    return H_frag, S_frag, orb, ele
+    H_mats = {}
+    S_mats = {}
+
+    H_mats[i, j] = sparse.csr_matrix(H_mat[:size_i, size_i:])
+    if keep_i:
+        H_mats[i, i] = H_mat[:size_i, :size_i]
+        S_mats[i, i] = S_mat[:size_i, :size_i]
+    if keep_j:
+        H_mats[j, j] = H_mat[size_i:, size_i:]
+        S_mats[j, j] = S_mat[size_i:, size_i:]
+
+    return H_mats, S_mats, orb, ele
 
 
 def run_all_dimers(fragments, dimers):
