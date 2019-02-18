@@ -1,38 +1,94 @@
+"""Network/Graph based operations
+
+All 'matrices' are square dense numpy arrays
+
+All 'graphs' are networkx.Graph objects
+
+"""
 import networkx as nx
 import numpy as np
 
+
+def adjacency_matrix(network):
+    """Weighted adjacency matrix from graph
+
+    Parameters
+    ----------
+    network : nx.Graph
+
+    Returns
+    -------
+    adj : numpy array
+      weighted adjacency matrix, Hij as weights
+    """
+    return nx.to_numpy_array(network, weight='Hij')
+
+
+def laplacian_matrix(network):
+    """Laplacian matrix
+
+    Weights are taken from 'Hij' property of edges
+
+    Parameters
+    ----------
+    network : nx.Graph
+
+    Returns
+    -------
+    laplacian : numpy array
+    """
+    adj = adjacency_matrix(network)
+    deg = adj.sum(axis=0)
+    adj *= -1
+    np.fill_diagonal(adj, deg)
+
+    return adj
+
+
 #TODO: kirchhoff index per biggest graph per frame (at diff thresholds)
 def resistance_distance_matrix(network):
+    """ Return resistance distance matrix
+
+    RD[i,j] = S[i,i] + S[j,j] - 2S[i,j]
+
+    Parameters
+    ----------
+    network : nx.Graph
+
+    Returns
+    -------
+    res_dist : numpy array
     """
-    Return resistance distance matrix:
-    RD[i,j]= S[i,i]+S[j,j]-2S[i,j]
-    """
-    n = network.order()
-    s = n * nx.laplacian_matrix(network, weight='Hij').todense() + 1
-    sn = n * np.linalg.pinv(s)
-    res_dist = np.zeros((n,n))
-    sn_diag = sn.diagonal()
-    res_dist[:,:] += sn_diag.T
-    res_dist[:,:] += sn_diag
-    res_dist -= 2*sn
+    Q = np.linalg.pinv(laplacian_matrix(network))
+
+    res_dist = np.zeros_like(Q)
+    res_dist += Q.diagonal()
+    res_dist += Q.diagonal().T
+    res_dist -= 2 * Q
+
     return res_dist
 
+
 def admittance_distance_matrix(network):
-    """
-    Return admittance distance matrix:
-    A[i,j]= 1/RD[i,j] if i!=j; 0 if i=j
+    """Admittance distance matrix
+
+       A[i,j]= 1/RD[i,j] if i!=j;
+       0 if i=j
+
     as defined in eq. 4 of J. Phys. Chem. Lett. 2015, 6, 1018-21.
     """
     RD = resistance_distance_matrix(network)
     A = np.zeros(RD.shape)
     A = 1/RD
     np.fill_diagonal(A, 0)
+
     return A
 
+
 def kirchhoff_transport_index(network):
-    """
-    Return Kirchhoff 'transport index':
-    Kt = sum A[i,j]/2N^2
+    """Kirchhoff 'transport index':
+
+       Kt = sum A[i,j]/2N^2
 
     Where
      A : 2d numpy array, real
@@ -44,12 +100,12 @@ def kirchhoff_transport_index(network):
     we normalize by 2N^2 (and not N^2 as in eq. 5 of
     J. Phys. Chem. Lett. 2015, 6, 1018-21).
     """
-
     A = admittance_distance_matrix(network)
     Kt = A.sum()
     Kt = Kt/(2*(network.order()**2))
 
     return Kt
+
 
 def kirchhoff_index(network):
     """ Kirchhoff (Resistance) Index (Kf)
@@ -59,7 +115,7 @@ def kirchhoff_index(network):
 
     """
     RD = resistance_distance_matrix(network)
-    Kf = RD.sum()*0.5
+    Kf = RD.sum() * 0.5
 
     return Kf
 
@@ -81,6 +137,7 @@ def find_coupling(fragments, H):
     """
     return coupling
 
+
 #TODO: return number of nearest neighbors per fragment per frame
 def nearneigh(fragments, detail=True):
     """Find nearest neighbors per fragment per frame
@@ -99,6 +156,8 @@ def nearneigh(fragments, detail=True):
     """
 
     return nn_list
+
+
 #return number of contacts per fragment per frame
 def contacts(fragments, thresh, graphs, full=True):
     """Find contacts per fragment per frame
