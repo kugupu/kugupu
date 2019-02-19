@@ -9,22 +9,29 @@ import networkx as nx
 import numpy as np
 
 
-def adjacency_matrix(network):
-    """Weighted adjacency matrix from graph
+def adjacency_matrix(network, weighted=True):
+    """Adjacency matrix from graph
 
     Parameters
     ----------
     network : nx.Graph
+      graph representation of charge transport network
+    weighted : bool, optional
+      if True edges are weighted according to Hij,
+      if False edges are all given a weight of 1.0
 
     Returns
     -------
     adj : numpy array
-      weighted adjacency matrix, Hij as weights
+      adjacency matrix
     """
-    return nx.to_numpy_array(network, weight='Hij')
+    if weighted:
+        return nx.to_numpy_array(network, weight='Hij')
+    else:
+        return nx.to_numpy_array(network)
 
 
-def laplacian_matrix(network):
+def laplacian_matrix(network, weighted=True):
     """Laplacian matrix
 
     Weights are taken from 'Hij' property of edges
@@ -37,7 +44,7 @@ def laplacian_matrix(network):
     -------
     laplacian : numpy array
     """
-    adj = adjacency_matrix(network)
+    adj = adjacency_matrix(network, weighted=weighted)
     deg = adj.sum(axis=0)
     adj *= -1
     np.fill_diagonal(adj, deg)
@@ -46,10 +53,12 @@ def laplacian_matrix(network):
 
 
 #TODO: kirchhoff index per biggest graph per frame (at diff thresholds)
-def resistance_distance_matrix(network):
+def resistance_distance_matrix(network, weighted=True):
     """ Return resistance distance matrix
 
-    RD[i,j] = S[i,i] + S[j,j] - 2S[i,j]
+      RD[i,j] = S[i,i] + S[j,j] - 2S[i,j]
+
+    Where S is the psuedo inverse of the Laplacian
 
     Parameters
     ----------
@@ -59,17 +68,17 @@ def resistance_distance_matrix(network):
     -------
     res_dist : numpy array
     """
-    Q = np.linalg.pinv(laplacian_matrix(network))
+    Q = np.linalg.pinv(laplacian_matrix(network, weighted=weighted))
 
     res_dist = np.zeros_like(Q)
     res_dist += Q.diagonal()
-    res_dist += Q.diagonal().T
+    res_dist += Q.diagonal().T[:, None]
     res_dist -= 2 * Q
 
     return res_dist
 
 
-def admittance_distance_matrix(network):
+def admittance_distance_matrix(network, weighted=True):
     """Admittance distance matrix
 
        A[i,j]= 1/RD[i,j] if i!=j;
@@ -77,15 +86,15 @@ def admittance_distance_matrix(network):
 
     as defined in eq. 4 of J. Phys. Chem. Lett. 2015, 6, 1018-21.
     """
-    RD = resistance_distance_matrix(network)
-    A = np.zeros(RD.shape)
-    A = 1/RD
+    RD = resistance_distance_matrix(network, weighted=weighted)
+
+    A = 1 / RD
     np.fill_diagonal(A, 0)
 
     return A
 
 
-def kirchhoff_transport_index(network):
+def kirchhoff_transport_index(network, weighted=True):
     """Kirchhoff 'transport index':
 
        Kt = sum A[i,j]/2N^2
@@ -100,21 +109,21 @@ def kirchhoff_transport_index(network):
     we normalize by 2N^2 (and not N^2 as in eq. 5 of
     J. Phys. Chem. Lett. 2015, 6, 1018-21).
     """
-    A = admittance_distance_matrix(network)
+    A = admittance_distance_matrix(network, weighted=weighted)
     Kt = A.sum()
-    Kt = Kt/(2*(network.order()**2))
+    Kt /= 2 * network.order()**2
 
     return Kt
 
 
-def kirchhoff_index(network):
+def kirchhoff_index(network, weighted=True):
     """ Kirchhoff (Resistance) Index (Kf)
 
     Kf = 1/2 * sum_i sum_j RD[i,j]
     Where RD = resistance distance matrix
 
     """
-    RD = resistance_distance_matrix(network)
+    RD = resistance_distance_matrix(network, weighted=weighted)
     Kf = RD.sum() * 0.5
 
     return Kf
