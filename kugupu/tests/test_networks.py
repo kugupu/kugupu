@@ -11,7 +11,7 @@ def graph(request):
     graph_stuff = namedtuple('Graph',
                              ['graph',  # raw nx graph
                               'weighted',  # bool on if weighted
-                              'adj', 'lap', 'res',  # ref matrices
+                              'adj', 'lap', 'res', 'adm', # ref matrices
                               'Kf', 'Kt'  # transport indice
                              ])
 
@@ -48,8 +48,22 @@ def graph(request):
                         [1.375, 1.125, 1.125, 0.375, 0.   , 0.5  , 0.375],
                         [1.375, 1.125, 1.125, 0.375, 0.5  , 0.   , 0.375],
                         [1.5  , 1.25 , 1.25 , 0.5  , 0.375, 0.375, 0.   ]])
+        adm = np.array([[0.        , 1.33333333, 1.33333333, 1.        , 0.72727273,
+                         0.72727273, 0.66666667],
+                        [1.33333333, 0.        , 1.        , 1.33333333, 0.88888889,
+                         0.88888889, 0.8       ],
+                        [1.33333333, 1.        , 0.        , 1.33333333, 0.88888889,
+                         0.88888889, 0.8       ],
+                        [1.        , 1.33333333, 1.33333333, 0.        , 2.66666667,
+                         2.66666667, 2.        ],
+                        [0.72727273, 0.88888889, 0.88888889, 2.66666667, 0.        ,
+                         2.        , 2.66666667],
+                        [0.72727273, 0.88888889, 0.88888889, 2.66666667, 2.        ,
+                         0.        , 2.66666667],
+                        [0.66666667, 0.8       , 0.8       , 2.        , 2.66666667,
+                         2.66666667, 0.        ]])
         Kf = 18.75
-        Kt = []
+        Kt = 0.5974850546279119
     else:
         # expected results for weighted=False
         weighted=False
@@ -74,10 +88,24 @@ def graph(request):
                         [1.75, 1.5 , 1.5 , 0.75, 0.  , 1.  , 0.75],
                         [1.75, 1.5 , 1.5 , 0.75, 1.  , 0.  , 0.75],
                         [2.  , 1.75, 1.75, 1.  , 0.75, 0.75, 0.  ]])
+        adm = np.array([[0.        , 1.33333333, 1.33333333, 1.        , 0.57142857,
+                         0.57142857, 0.5       ],
+                        [1.33333333, 0.        , 1.        , 1.33333333, 0.66666667,
+                         0.66666667, 0.57142857],
+                        [1.33333333, 1.        , 0.        , 1.33333333, 0.66666667,
+                         0.66666667, 0.57142857],
+                        [1.        , 1.33333333, 1.33333333, 0.        , 1.33333333,
+                         1.33333333, 1.        ],
+                        [0.57142857, 0.66666667, 0.66666667, 1.33333333, 0.        ,
+                         1.        , 1.33333333],
+                        [0.57142857, 0.66666667, 0.66666667, 1.33333333, 1.        ,
+                         0.        , 1.33333333],
+                        [0.5       , 0.57142857, 0.57142857, 1.        , 1.33333333,
+                         1.33333333, 0.        ]])
         Kf = 25.0
-        Kt = []
+        Kt = 0.410592808551992
 
-    return graph_stuff(graph, weighted, adj, lap, res, Kf, Kt)
+    return graph_stuff(graph, weighted, adj, lap, res, adm, Kf, Kt)
 
 
 @pytest.fixture()
@@ -153,7 +181,18 @@ def test_resistance_distance(graph):
         graph.res,
         kgp.networks.resistance_distance_matrix(graph.graph, weighted=graph.weighted))
 
+def test_admittance_distance(graph):
+    assert_almost_equal(
+        graph.adm,
+        kgp.networks.admittance_distance_matrix(graph.graph, weighted=graph.weighted))
+
 def test_kirchhoff_index(graph):
     assert_almost_equal(
         graph.Kf,
         kgp.networks.kirchhoff_index(graph.graph, weighted=graph.weighted))
+
+def test_kirchhoff_transport_index(graph):
+    assert_almost_equal(
+        graph.Kt,
+        kgp.networks.kirchhoff_transport_index(graph.graph,
+                                               weighted=graph.weighted))

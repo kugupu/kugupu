@@ -88,8 +88,8 @@ def admittance_distance_matrix(network, weighted=True):
     """
     RD = resistance_distance_matrix(network, weighted=weighted)
 
-    A = 1 / RD
-    np.fill_diagonal(A, 0)
+    A = np.zeros_like(RD)
+    A[np.nonzero(RD)] = 1 / RD[np.nonzero(RD)]
 
     return A
 
