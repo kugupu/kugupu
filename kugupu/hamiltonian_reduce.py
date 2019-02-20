@@ -176,7 +176,7 @@ def convert_to_fragment_basis(dimers, degeneracy, H_orb, e_frag, v_frag):
       coupling matrix on the basis of fragments
       Will be square with size (nfrags * degeneracy, nfrags * degeneracy)
     """
-    # arrays for indexing Hij
+    # arrays for indexing H_frag
     stops = np.cumsum(degeneracy)
     starts = np.r_[0, stops[:-1]]
 
@@ -188,7 +188,7 @@ def convert_to_fragment_basis(dimers, degeneracy, H_orb, e_frag, v_frag):
     for x, y in dimers:
         # < psi_x | H_xy | psi_y >
         # place H_xy first as sparse matrix
-        H_pipo = H_orb[x, y].T.dot(v_frag[x]).T.dot(v_frag[y])
+        H_pipo = np.abs(H_orb[x, y].T.dot(v_frag[x]).T.dot(v_frag[y]))
         H_frag[starts[x]:stops[x], starts[y]:stops[y]] = H_pipo
         H_frag[starts[y]:stops[y], starts[x]:stops[x]] = H_pipo.T
 
