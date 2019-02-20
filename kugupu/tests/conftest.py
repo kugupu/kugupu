@@ -74,22 +74,3 @@ def ref_results(results_file):
     return kgp.load_results(results_file)
 
 
-@pytest.fixture
-def ref_bind_inp():
-    with open(os.path.join(DATA_DIR, 'ref_yaehmop_out', 'ref_0-7_bind.inp'),
-              'r') as f:
-        return f.read()
-
-@pytest.fixture
-def ref_bind_out(in_tmpdir):
-    base = os.path.join(DATA_DIR, 'ref_yaehmop_out')
-    for f in ['ref_0-7_bind.inp.out',
-              'ref_0-7_bind.inp.OV',
-              'ref_0-7_bind.inp.HAM']:
-        shutil.copy2(os.path.join(base, f), f)
-    return 'ref_0-7_bind.inp'
-
-
-@pytest.fixture
-def ref_yaehmop_results():
-    return None

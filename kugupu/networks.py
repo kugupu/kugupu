@@ -233,8 +233,8 @@ def find_networks(fragments, H, degeneracy, thresh_list):
     frag_arr = np.empty(len(fragments), dtype=object)
     frag_arr[:] = fragments
 
-    # only interested in absolute values, plus we want copy of data
-    H_ij = np.abs(H)
+    # we want copy of data as we modify diagonal
+    H_ij = H.copy()
     # remove diagonal from H
     np.fill_diagonal(H_ij, 0)
 

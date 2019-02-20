@@ -42,7 +42,7 @@ def test_mini_regression(mini_u, mini_ix, ref_results):
 
     for H_ref, H_new in zip(ref_results.H_frag,
                             results.H_frag):
-        assert_almost_equal(abs(H_ref[ix]), abs(H_new))
+        assert_almost_equal(abs(H_ref[ix]), abs(H_new), decimal=3)
 
 @pytest.mark.parametrize('start,stop,step', [
     (None, 5, None),

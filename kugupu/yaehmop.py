@@ -4,7 +4,6 @@
 from collections import Counter, namedtuple
 from scipy import sparse
 import numpy as np
-import shutil
 import subprocess
 import os
 from tqdm import tqdm
@@ -15,19 +14,13 @@ import yaehmop
 
 from . import logger
 
-# expected binary to run yaehmop tight binding calculation
-YAEHMOP_BIN = 'eht_bind'
-if shutil.which(YAEHMOP_BIN) is None:
-    warnings.warn("Could not find eht_bind in path")
-    # if not found, can set yaehmop.YAEHMOP_BIN to specify
-
-# contains information on how to index atomic orbital matrices
-FragSizes = namedtuple('FragSizes',
-                       ['starts', 'stops', 'sizes', 'n_electrons'])
+# contains information on the number of orbitals and number of valence
+# electrons in all fragments
+FragSizes = namedtuple('FragSizes', ['n_orbitals', 'n_electrons'])
 
 
 def shift_dimer_images(frag_i, frag_j):
-    """Move fragment j to be in closest image to fragment i
+    """Determine positions that place frag_j next to frag_i
 
     Returns
     -------
@@ -50,139 +43,6 @@ def shift_dimer_images(frag_i, frag_j):
         pos_j = frag_j.positions
 
     return np.concatenate([frag_i.positions, pos_j])
-
-
-def create_bind_input(ag, pos, name):
-    """Create YAEHMOP input file
-
-    Parameters
-    ----------
-    ag : mda.AtomGroup
-      AtomGroup to be ran
-    pos : numpy array
-      positions for atoms in AtomGroup
-    name : str
-      name for simulation
-
-    Returns
-    -------
-    output : str
-      contents of Yaehmop input
-      can either be piped in or written to file
-    """
-    logger.debug("Creating yaehmop input")
-    n_atoms = len(ag)
-
-    output = '{}\n\n'.format(name)
-    output += 'molecular\n\n'
-    output += 'geometry\n{:<15d}\n'.format(n_atoms)
-
-    for count in range(n_atoms):
-        output += (' {:<5d} {:<5s} {:>15.8f} {:>15.8f} {:>15.8f}\n'
-                   ''.format(count + 1, ag[count].name,
-                             pos[count, 0],
-                             pos[count, 1],
-                             pos[count, 2]))
-    output += ('\n'
-               'charge\n'
-               '0\n\n'
-               'Nonweighted\n\n'
-               'dump hamiltonian\n'
-               'dump overlap\n'
-               'Just Matrices\n')
-
-    return output
-
-
-def run_bind(base, bind_input):
-    """Run yaehmop-bind on a single input
-
-    Parameters
-    ----------
-    bind_input : str
-      string representation of yaehmop input file
-
-    Returns
-    -------
-    ret : subprocess.CompletedProcess
-      the return value of the subprocess call, checking not done
-    """
-    logger.debug("Writing yaehmop input")
-    with open(base, 'w') as out:
-        out.write(bind_input)
-
-    logger.debug("Running yaehmop")
-    ret = subprocess.run('{} {}'.format(YAEHMOP_BIN, base),
-                         shell=True,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-    )
-    # these are initially created with weird permissions
-    os.chmod(base + '.OV', 0o766)
-    os.chmod(base + '.HAM', 0o766)
-    return ret
-
-
-"""Sample ascii portion of yaehmop output:
-# ******** Extended Hueckel Parameters ********
-;  FORMAT  quantum number orbital: Hii, <c1>, exponent1, <c2>, <exponent2>
-
-ATOM: C   Atomic number: 6  # Valence Electrons: 4
-	2S:   -21.4000     1.6250
-	2P:   -11.4000     1.6250
-ATOM: H   Atomic number: 1  # Valence Electrons: 1
-	1S:   -13.6000     1.3000
-ATOM: S   Atomic number: 16  # Valence Electrons: 6
-	3S:   -20.0000     2.1220
-	3P:   -11.0000     1.8270
-ATOM: O   Atomic number: 8  # Valence Electrons: 6
-	2S:   -32.3000     2.2750
-	2P:   -14.8000     2.2750
-ATOM: N   Atomic number: 7  # Valence Electrons: 5
-	2S:   -26.0000     1.9500
-	2P:   -13.4000     1.9500
-
-; Number of orbitals
-#Num_Orbitals: 1140
-"""
-def parse_bind_out(fn):
-    """Parse ascii section of yaehmop output
-
-    Parameters
-    ----------
-    fn : str
-      path to ascii yaehmop output
-
-    Returns
-    -------
-    orbitals, valence_electrons : dict
-      mapping of atom element to number of orbitals and valence electrons
-      respectively
-    """
-    orbitals = {}
-    valence_electrons = {}
-
-    with open(fn, 'r') as f:
-        line = ''
-        while not line.startswith('# ******** Extended Hueckel'):
-            line = next(f)
-
-        while not line.startswith('#Num'):
-            line = next(f)
-            pieces = line.split()
-            if not pieces:
-                continue
-
-            if pieces[0] == "ATOM:":
-                atom_type = pieces[1]
-                orbitals[atom_type] = 0
-                valence_electrons[atom_type] = int(pieces[-1])
-            else:
-                for char, n in [('S', 1), ('P', 3), ('D', 5)]:
-                    if char in pieces[0]:
-                        orbitals[atom_type] += n
-
-    return orbitals, valence_electrons
 
 
 ORBITALS = {
@@ -224,154 +84,6 @@ def count_orbitals(ag):
     return norbitals, nelectrons
 
 
-def parse_yaehmop_binary_out(fn):
-    """Read yaehmop binary and return square matrix"""
-    mat = np.fromfile(fn)
-    # matrices start with 2 ints (1 double)
-    mat = mat[1:]
-    size = int(np.sqrt(mat.shape[0]))
-
-    return mat.reshape(size, size)
-
-
-def parse_yaehmop_out(base, dimer_indices,
-                      ag_i, ag_j,
-                      keep_i=False, keep_j=False):
-    """Read output from single YAEHMOP dimer calculation
-
-    Parameters
-    ----------
-    base : str
-      base name of files
-    dimer_indices : tuple of ints
-      indices of the fragments
-    ag_i, ag_j : mda.AtomGroup
-      AtomGroup of each fragment
-
-    Returns
-    -------
-    H_mats, S_mats : dict of matrices
-    norbitals, nelectrons : dict of frag index to value
-    """
-    orbitals, electrons = parse_bind_out(base + '.out')
-
-    norbitals = {}
-    nelectrons = {}
-
-    for frag_id, ag in zip(dimer_indices, (ag_i, ag_j)):
-        norbitals[frag_id], nelectrons[frag_id] = count_orbitals(
-            ag, orbitals, electrons)
-
-    i, j = dimer_indices
-    size_i = norbitals[i]
-
-    H_mats = {}
-    S_mats = {}
-
-    big_H = parse_yaehmop_binary_out(base + '.HAM')
-    H_mats[i, j] = sparse.csr_matrix(big_H[:size_i, size_i:])
-    if keep_i:
-        H_mats[i, i] = big_H[:size_i, :size_i]
-    if keep_j:
-        H_mats[j, j] = big_H[size_i:, size_i:]
-
-    if keep_i or keep_j:
-        # only parse overlap matrix if we are keeping a self contribution
-        big_S =  parse_yaehmop_binary_out(base + '.OV')
-
-        if keep_i:
-            S_mats[i, i] = big_S[:size_i, :size_i]
-        if keep_j:
-            S_mats[j, j] = big_S[size_i:, size_i:]
-
-    return H_mats, S_mats, norbitals, nelectrons
-
-
-def parse_fragment_yaehmop_out(base, ag):
-    """Parse output for single fragment yaehmop calculation
-
-    Parameters
-    ----------
-    base : str
-      base for filenames
-    ag : AtomGroup
-      the AtomGroup simulations were ran on
-
-    Returns
-    -------
-    H_mat, S_mat : numpy arrays
-      Hamiltonian and overlap on Atomic basis
-    norbitals, nelectrons : int
-      number of orbitals and valence electrons in system
-    """
-    orbitals, electrons = parse_bind_out(base + '.out')
-    norbs, neles = count_orbitals(ag, orbitals, electrons)
-    H_mat = parse_yaehmop_binary_out(base + '.HAM')
-    S_mat = parse_yaehmop_binary_out(base + '.OV')
-
-    return H_mat, S_mat, norbs, neles
-
-
-def find_fragment_sizes(nfrags, norbitals, nelectrons):
-    """Calculate offsets to index different fragments in orbital matrices
-
-    Parameters
-    ----------
-    nfrags : int
-      total number of fragments
-    norbitals : dict
-      maps fragment index to number of orbitals in the fragment
-    nelectrons : dict
-      maps fragment inex to number of valence electrons
-
-    Returns
-    -------
-    fragsize : namedtuple
-      has attributes 'starts', 'stops', 'sizes' and 'n_electrons'
-      which can be indexed using fragment ids (0..nfrags-1)
-    """
-    sizes = np.array([norbitals[i] for i in range(nfrags)])
-    starts = np.zeros(nfrags, dtype=int)
-    stops = np.zeros(nfrags, dtype=int)
-    n_electrons = np.array([nelectrons[i] for i in range(nfrags)])
-
-    # find start and stop indices for each fragment
-    slice_points = np.cumsum(sizes)
-    starts[1:] = slice_points[:-1]
-    stops[:] = slice_points[:]
-
-    return FragSizes(
-        starts=starts,
-        stops=stops,
-        sizes=sizes,
-        n_electrons=n_electrons,
-    )
-
-
-def cleanup_output(base):
-    """Delete output from yaehmop
-
-    Removes:
-    - input
-    - .out
-    - .status
-    - .OV
-    - .HAM
-
-    Parameters
-    ----------
-    base : str
-      base filename for files
-    """
-    logger.debug("Removing output for {}".format(base))
-
-    os.remove(base)
-    os.remove(base + '.out')
-    os.remove(base + '.status')
-    os.remove(base + '.OV')
-    os.remove(base + '.HAM')
-
-
 def run_single_fragment(ag, index):
     """Create input run YAEHMOP and parse output for single fragmnet
 
@@ -392,15 +104,15 @@ def run_single_fragment(ag, index):
     logger.debug('Calculating lone fragment {}'.format(index))
     base = '{}.bind'.format(index)
 
-    H_mat, S_mat = yaehmop.run_bind(ag.positions.astype(np.float64),
-                                    list(ag.names), 0.0)
+    H_mat, S_mat = yaehmop.run_bind(
+        ag.positions.astype(np.float64), ag.names, 0.0)
     norbitals, nelectrons = count_orbitals(ag)
 
     return H_mat, S_mat, norbitals, nelectrons
 
 
 def run_single_dimer(ags, indices, keep_i, keep_j):
-    """Create input, runs YAEHMOP and parses output
+    """Push a dimer into yaehmop tight bind
 
     Parameters
     ----------
@@ -423,28 +135,23 @@ def run_single_dimer(ags, indices, keep_i, keep_j):
     ag_i, ag_j = ags
     pos = shift_dimer_images(ag_i, ag_j)
 
-    H_mat, S_mat = yaehmop.run_bind(pos.astype(np.float64),
-                                    list((ag_i + ag_j).names), 0.0)
+    H_mat, S_mat = yaehmop.run_bind(
+        pos.astype(np.float64), (ag_i + ag_j).names, 0.0)
 
     orb_i, ele_i = count_orbitals(ag_i)
     orb_j, ele_j = count_orbitals(ag_j)
-    orb = {i: orb_i, j: orb_j}
-    ele = {i: ele_i, j: ele_j}
-
-    size_i = orb[i]
 
     H_mats = {}
     S_mats = {}
-
-    H_mats[i, j] = sparse.csr_matrix(H_mat[:size_i, size_i:])
+    H_mats[i, j] = sparse.csr_matrix(H_mat[:orb_i, orb_i:])
     if keep_i:
-        H_mats[i, i] = H_mat[:size_i, :size_i]
-        S_mats[i, i] = S_mat[:size_i, :size_i]
+        H_mats[i, i] = H_mat[:orb_i, :orb_i]
+        S_mats[i, i] = S_mat[:orb_i, :orb_i]
     if keep_j:
-        H_mats[j, j] = H_mat[size_i:, size_i:]
-        S_mats[j, j] = S_mat[size_i:, size_i:]
+        H_mats[j, j] = H_mat[orb_i:, orb_i:]
+        S_mats[j, j] = S_mat[orb_i:, orb_i:]
 
-    return H_mats, S_mats, orb, ele
+    return H_mats, S_mats, (orb_i, orb_j), (ele_i, ele_j)
 
 
 def run_all_dimers(fragments, dimers):
@@ -473,8 +180,10 @@ def run_all_dimers(fragments, dimers):
     H_coords = dict()
     S_coords = dict()
     # values per fragment id
-    norbitals = dict()
-    nelectrons = dict()
+    fragsize = FragSizes(
+        np.zeros(len(fragments), dtype=int),
+        np.zeros(len(fragments), dtype=int),
+    )
 
     for (i, j), ags in tqdm(sorted(dimers.items())):
         # only keep each self contribution once
@@ -487,19 +196,17 @@ def run_all_dimers(fragments, dimers):
             ags, (i, j), keep_i, keep_j)
         H_coords.update(H_frag)
         S_coords.update(S_frag)
-        norbitals.update(orb)
-        nelectrons.update(ele)
+        for o, e, x in zip(orb, ele, (i, j)):
+            fragsize.n_orbitals[x] = o
+            fragsize.n_electrons[x] = e
 
     # for each fragment that wasn't in a dimer pairing
     for i in set(range(len(fragments))) - done:
         H_frag, S_frag, orb, ele = run_single_fragment(fragments[i], i)
         H_coords[i, i] = H_frag
         S_coords[i, i] = S_frag
-        norbitals[i] = orb
-        nelectrons[i] = ele
-
-    logger.info('Finding fragment sizes')
-    fragsize = find_fragment_sizes(len(fragments), norbitals, nelectrons)
+        fragsize.n_orbitals[i] = orb
+        fragsize.n_electrons[i] = ele
 
     logger.info('Done with yaehmop')
     return H_coords, S_coords, fragsize
