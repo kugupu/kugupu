@@ -3,12 +3,13 @@
 import yaml
 import numpy as np
 import MDAnalysis as mda
+from tqdm import tqdm
 
 from . import logger
 from . import KugupuResults
 from .dimers import find_dimers
-from .yaehmop import run_all_dimers
-from .hamiltonian_reduce import calculate_H_frag
+from . import yaehmop
+from . import hamiltonian_reduce
 from .networks import find_networks
 
 
@@ -49,6 +50,42 @@ def read_param_file(param_file):
 
     return params
 
+find_psi = hamiltonian_reduce.find_fragment_eigenvalue
+
+
+def _single_frame(dimers, degeneracy, state):
+    """Results for a single frame
+
+    """
+    size = degeneracy.sum()
+    H_frag = np.zeros((size, size))
+    wave = dict()  # wavefunctions for each fragment
+
+    for (i, j), ags in tqdm(sorted(dimers.items())):
+        keep_i = not i in wave
+        keep_j = not j in wave
+        logger.debug('Calculating dimer {}-{}'.format(i, j))
+        Hij, H, S, eles = yaehmop.run_dimer(ags)
+        if keep_i:
+            e_i, psi_i = find_psi(H[0], S[0], eles[0],
+                                  state, degeneracy[i])
+            H_frag[i, i] = e_i
+            wave[i] = psi_i
+        else:
+            psi_i = wave[i]
+
+        if keep_j:
+            e_j, psi_j = find_psi(H[1], S[1], eles[1],
+                                  state, degeneracy[j])
+            H_frag[j, j] = e_j
+            wave[j] = psi_j
+        else:
+            psi_j = wave[j]
+
+        # H = <psi_i|Hij|psi_j>
+        H_frag[i, j] = H_frag[j, i] = abs(psi_i.T.dot(Hij).dot(psi_j))
+
+    return H_frag
 
 def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
                                start=None, stop=None, step=None):
@@ -100,17 +137,7 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
 
         dimers = find_dimers(u.atoms.fragments, nn_cutoff)
 
-        H_orb, S_orb, fragsize = run_all_dimers(u.atoms.fragments, dimers)
-
-        if degeneracy is None:
-            # first time through with auto degen
-            H_frag, degeneracy = calculate_H_frag(dimers, fragsize,
-                                                  H_orb, S_orb,
-                                                  state, degeneracy=None)
-        else:
-            H_frag = calculate_H_frag(dimers, fragsize,
-                                      H_orb, S_orb,
-                                      state, degeneracy)
+        H_frag = _single_frame(dimers, degeneracy, state)
 
         frames.append(ts.frame)
         Hs.append(H_frag)

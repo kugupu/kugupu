@@ -111,27 +111,20 @@ def run_single_fragment(ag, index):
     return H_mat, S_mat, norbitals, nelectrons
 
 
-def run_single_dimer(ags, indices, keep_i, keep_j):
+def run_dimer(ags):
     """Push a dimer into yaehmop tight bind
 
     Parameters
     ----------
     ags : tuple of mda.AtomGroup
       The dimer to run
-    indices : tuple of int
-      the indices of this dimer pairing, eg (4, 5)
-    keep_i, keep_j : bool
-      whether to keep the self contribution for fragments i & j
 
     Returns
     -------
-    H_frag, S_frag : dict of sparse.csr_matrix/numpy.array
-      dict of contributions for different (i,j) pairs
-    orb, ele : dicts
-      fragment index to orbital size and number of valence electrons
+    Hij : numpy array of off diagonal section
+    Hii, Sii : tuple
+    ele : tuple
     """
-    logger.debug('Calculating dimer {}'.format(indices))
-    i, j = indices
     ag_i, ag_j = ags
     pos = shift_dimer_images(ag_i, ag_j)
 
@@ -141,17 +134,13 @@ def run_single_dimer(ags, indices, keep_i, keep_j):
     orb_i, ele_i = count_orbitals(ag_i)
     orb_j, ele_j = count_orbitals(ag_j)
 
-    H_mats = {}
-    S_mats = {}
-    H_mats[i, j] = sparse.csr_matrix(H_mat[:orb_i, orb_i:])
-    if keep_i:
-        H_mats[i, i] = H_mat[:orb_i, :orb_i]
-        S_mats[i, i] = S_mat[:orb_i, :orb_i]
-    if keep_j:
-        H_mats[j, j] = H_mat[orb_i:, orb_i:]
-        S_mats[j, j] = S_mat[orb_i:, orb_i:]
+    Hij = H_mat[:orb_i, orb_i:]
+    Hii = H_mat[:orb_i, :orb_i]
+    Sii = S_mat[:orb_i, :orb_i]
+    Hjj = H_mat[orb_i:, orb_i:]
+    Sjj = S_mat[orb_i:, orb_i:]
 
-    return H_mats, S_mats, (orb_i, orb_j), (ele_i, ele_j)
+    return Hij, (Hii, Hjj), (Sii, Sjj), (ele_i, ele_j)
 
 
 def run_all_dimers(fragments, dimers):
