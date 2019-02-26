@@ -209,19 +209,27 @@ def H_address_to_fragment(degeneracy):
     return np.repeat(np.arange(degeneracy.shape[0]), degeneracy)
 
 
-def find_networks(fragments, H, degeneracy, thresh_list):
+def find_networks(fragments, H, degeneracy, thresh_list, e_tol=0.3):
     """Find connectivity matrix
+
+    fragments i & j will be considered connected if:
+      H[i, j] < thresh
+    and
+      abs(H[i, i] - H[j, j]) < e_tol
 
     Parameters
     ----------
     fragments : list of atomgroups
-      contains coordinates of every molecule in the system
+      will be used as node labels
     H : np.array
       Hamiltonian matrix between fragment states
     degeneracy : numpy array
       number of states for each fragment
     thresh_list : list of float
       different threshold values to build networks for
+    e_tol : float
+      maximum allowed different in energy levels (in eV)
+      between two states
 
     Returns
     -------
@@ -235,6 +243,8 @@ def find_networks(fragments, H, degeneracy, thresh_list):
 
     # we want copy of data as we modify diagonal
     H_ij = H.copy()
+    # energy of each state
+    energies = H.diagonal().copy()
     # remove diagonal from H
     np.fill_diagonal(H_ij, 0)
 
@@ -247,6 +257,10 @@ def find_networks(fragments, H, degeneracy, thresh_list):
         g.add_nodes_from(frag_arr)
 
         i, j = np.where(H_ij > thresh)
+        # check that states are within a certain energy
+        e_crit = np.abs(energies[i] - energies[j]) < e_tol
+        i, j = i[e_crit], j[e_crit]
+
         # convert MO index to fragment index
         i, j = H_map[i], H_map[j]
 
