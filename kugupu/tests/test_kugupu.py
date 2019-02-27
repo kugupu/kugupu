@@ -33,12 +33,13 @@ def test_regression(u, ref_results):
     assert_almost_equal(H_frag, ref_results.H_frag[0], decimal=4)
     assert_almost_equal(S_frag, ref_results.S_frag[0], decimal=4)
 
+
 def test_mini_regression(mini_u, mini_ix, ref_results):
     # slice to grab mini results from 200 frag matrix
     ix = np.ix_(mini_ix, mini_ix)
-    results = kgp.generate_H_frag_trajectory(mini_u,
-                                             nn_cutoff=5.0, degeneracy=1,
-                                             state='lumo')
+    results = kgp.coupling_matrix(mini_u,
+                                  nn_cutoff=5.0, degeneracy=1,
+                                  state='lumo')
 
     for H_ref, H_new in zip(ref_results.H_frag,
                             results.H_frag):
@@ -53,10 +54,10 @@ def test_mini_regression(mini_u, mini_ix, ref_results):
 def test_slicing_options(mini_u, mini_ix, ref_results, start, stop, step):
     ix = np.ix_(mini_ix, mini_ix)
 
-    results = kgp.generate_H_frag_trajectory(mini_u,
-                                             nn_cutoff=5.0, degeneracy=1,
-                                             state='lumo',
-                                             start=start, stop=stop, step=step)
+    results = kgp.coupling_matrix(mini_u,
+                                  nn_cutoff=5.0, degeneracy=1,
+                                  state='lumo',
+                                  start=start, stop=stop, step=step)
 
     assert results.H_frag.shape[0] == ref_results.H_frag[slice(start, stop, step)].shape[0]
     for H_ref, H_new in zip(ref_results.H_frag[slice(start, stop, step)],
