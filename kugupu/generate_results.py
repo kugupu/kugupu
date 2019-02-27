@@ -6,7 +6,7 @@ from tqdm import tqdm
 from . import logger
 from . import KugupuResults
 from .dimers import find_dimers
-from ._yaehmop import run_dimer
+from ._yaehmop import run_dimer, run_fragment
 from ._hamiltonian_reduce import find_psi
 
 
@@ -75,7 +75,7 @@ def _single_frame(fragments, nn_cutoff, degeneracy, state):
     # do single fragment calculations for all missing
     for i in (set(range(len(degeneracy))) - set(wave.keys())):
         ix, iy = starts[i], stops[i]
-        logger.debug('Calculating lone fragment {}'.format(index))
+        logger.debug('Calculating lone fragment {}'.format(i))
         H, S, ele = run_fragment(fragments[i])
 
         e_i, psi_i = find_psi(H, S, ele, state, degeneracy[i])
