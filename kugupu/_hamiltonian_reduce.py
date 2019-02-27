@@ -12,6 +12,42 @@ MAX_DEGEN = 20
 DEGEN_TOL = 0.02
 
 
+def find_psi(H, S, n_electrons, state, degeneracy):
+    """Find wavefunction for single fragment
+
+    Parameters
+    ----------
+    H, S : numpy array
+      Hamiltonian and Overlap matrix for fragment
+    n_electrons : int
+      number of valence electrons
+    state : str
+      'homo' or 'lumo'
+    degeneracy : int
+      number of degenerate states to consider
+
+    Returns
+    -------
+    energy : float
+    wavefunction : numpy array
+    """
+    homo = int(n_electrons // 2) - 1
+    if state.lower() == 'homo':
+        lo = homo - (degeneracy - 1)
+        hi = homo
+    elif state.lower() == 'lumo':
+        lo = homo + 1
+        hi = homo + 1 + (degeneracy - 1)
+
+    # e - eigenvalues
+    # v - eigenvectors
+    # grab only (lo->hi) eigenvalues
+    e, v = linalg.eigh(H, S, lower=False,
+                       eigvals=(lo, hi))
+
+    return e, v
+
+
 def find_fragment_eigenvalues_auto_degen(H_orb, S_orb,
                                          n_electrons, state,
                                          max_degeneracy=None,
@@ -97,43 +133,6 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb,
     return e_frag, v_frag_arr, degeneracy
 
 
-def find_fragment_eigenvalue(H, S, n_electrons, state, degeneracy):
-    """Find wavefunction for single fragment
-
-    Parameters
-    ----------
-    H, S : numpy array
-      Hamiltonian and Overlap matrix for fragment
-    n_electrons : int
-      number of valence electrons
-    state : str
-      'homo' or 'lumo'
-    degeneracy : int
-      number of degenerate states to consider
-
-    Returns
-    -------
-    energy : float
-    wavefunction : numpy array
-    """
-    homo = int(n_electrons // 2) - 1
-    if state.lower() == 'homo':
-        lo = homo - (degeneracy - 1)
-        hi = homo
-    elif state.lower() == 'lumo':
-        lo = homo + 1
-        hi = homo + 1 + (degeneracy - 1)
-
-    # e - eigenvalues
-    # v - eigenvectors
-    # grab only (lo->hi) eigenvalues
-    e, v = linalg.eigh(H, S, lower=False,
-                       eigvals=(lo, hi))
-
-    return e, v
-
-
-    
 def find_fragment_eigenvalues(H_orb, S_orb, n_electrons, state,
                               degeneracy):
     """Find eigenvalues and vectors for each fragments orbitals

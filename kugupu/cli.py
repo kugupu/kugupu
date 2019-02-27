@@ -1,7 +1,7 @@
 import MDAnalysis as mda
 import yaml
 
-from . import generate_H_frag_trajectory
+from . import coupling_matrix
 from . import save_results
 
 def make_Universe(topfile, trjfile):
