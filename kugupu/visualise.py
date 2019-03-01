@@ -1,6 +1,7 @@
 """Visualise results"""
 import MDAnalysis as mda
 import numpy as np
+import warnings
 
 COL_DICT = {'r': [1, 0, 0],
             'g': [0, 1, 0],
@@ -116,11 +117,15 @@ def draw_network(network, view=None, color='r',
     view : nglview.NGLWidget
       the nglview object showing the molecule
     """
+    frags = list(network.nodes())
+    if not isinstance(mda.coordinates.memory.MemoryReader,
+                      frags[0].universe.trajectory):
+        warnings.warn("Visualisation works best with in-memory trajectory. "
+                      "Consider using transfer_to_memory")
     import nglview as nv
 
     # move contents of network into primary unit cell
     gather_network(network)
-    frags = list(network.nodes())
 
     if view is None:
         view = nv.NGLWidget()

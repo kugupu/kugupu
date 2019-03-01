@@ -1,0 +1,2 @@
+include versioneer.py
+include kugupu/_version.py
