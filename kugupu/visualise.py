@@ -130,14 +130,17 @@ def draw_network(network, view=None, color='r',
     if view is None:
         view = nv.NGLWidget()
 
-    if show_molecules:
-        view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
+    # nglview throws a lot of useless warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        if show_molecules:
+            view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
 
-    #view.clear_representations()
-    #view.add_ball_and_stick(opacity=0.5)
+        #view.clear_representations()
+        #view.add_ball_and_stick(opacity=0.5)
 
-    draw_fragment_centers(view, frags, color=color)
-    draw_fragment_links(view, frags, network.edges(), color=color)
+        draw_fragment_centers(view, frags, color=color)
+        draw_fragment_links(view, frags, network.edges(), color=color)
 
     #view.add_unitcell()
 
