@@ -22,10 +22,10 @@ logger.start(sys.stderr, format="{time} {level} {message}", level="INFO")
 from .results_io import KugupuResults, save_results, load_results
 from . import time
 from . import dimers
-from . import yaehmop
+from . import _yaehmop
+from . import _hamiltonian_reduce
 from . import networks
-from . import hamiltonian_reduce
-from .generate_results import generate_H_frag_trajectory, read_param_file
+from .generate_results import coupling_matrix
 from . import cli
 from . import visualise
 # logger.start(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")

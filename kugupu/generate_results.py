@@ -1,57 +1,94 @@
 """runs the whole thing from head to toe"""
 
-import yaml
 import numpy as np
-import MDAnalysis as mda
+from tqdm import tqdm
 
 from . import logger
 from . import KugupuResults
 from .dimers import find_dimers
-from .yaehmop import run_all_dimers
-from .hamiltonian_reduce import calculate_H_frag
-from .networks import find_networks
+from ._yaehmop import run_dimer, run_fragment
+from ._hamiltonian_reduce import find_psi
 
 
-def make_universe(topologyfile, dcdfile):
-    universe = mda.Universe(topologyfile, dcdfile)
-
-    if not hasattr(universe.atoms, 'bonds'):
-        universe.atoms.guess_bonds()
-
-    if not hasattr(universe.atoms, 'names'):
-        universe.add_TopologyAttr('names')
-        namedict = { 1.008: 'H', 12.011: 'C', 14.007: 'N', 15.999: 'O', 32.06 : 'S', 18.99800: 'F' }
-         #TODO: add fluorine at least
-        for m, n in namedict.items():
-            universe.atoms[universe.atoms.masses == m].names = n
-
-    return universe
-
-
-def read_param_file(param_file):
-    """
-    Reads the yaml parameter file
+def _single_frame(fragments, nn_cutoff, degeneracy, state):
+    """Results for a single frame
 
     Parameters
     ----------
-    param_file : yaml file
-    this should contain:
-     state : string
-      homo or lumo
-     V_cutoff : list of reals
-      energy thresholds in eV
-     nn_cutoff : real
-      cutoff for nearest neighbor search in Å
-     degeneracy : string
-      how many frontier orbitals to consider (including homo/lumo)
+    fragments : list of AtomGroup
+      all fragments in system
+    nn_cutoff : float
+      distance for dimer pairs
+    degeneracy : numpy array
+      degenerate states per fragment
+    state : str
+      'homo' or 'lumo'
+
+    Returns
+    -------
+    H_frag : numpy array
+      coupling matrix
     """
-    params = yaml.load(open(param_file))
+    dimers = find_dimers(fragments, nn_cutoff)
 
-    return params
+    size = degeneracy.sum()
+    H_frag = np.zeros((size, size))
+    # start and stop indices for each fragment
+    stops = np.cumsum(degeneracy)
+    starts = np.r_[0, stops[:-1]]
+    diag = np.arange(size)  # diagonal indices
+    wave = dict()  # wavefunctions for each fragment
+
+    for (i, j), ags in tqdm(sorted(dimers.items())):
+        # indices for indexing H_frag for each fragment
+        ix, iy = starts[i], stops[i]
+        jx, jy = starts[j], stops[j]
+
+        keep_i = not i in wave
+        keep_j = not j in wave
+        logger.debug('Calculating dimer {}-{}'.format(i, j))
+        Hij, frag_i, frag_j = run_dimer(ags)
+        if keep_i:
+            # If we didn't have fragment i already done,
+            # calculate the wavefunction and state energy
+            e_i, psi_i = find_psi(frag_i[0], frag_i[1], frag_i[2],
+                                  state, degeneracy[i])
+            # fill diagonal with energy of states
+            H_frag[diag[ix:iy], diag[ix:iy]] = e_i
+            # store the wavefunction for future use
+            wave[i] = psi_i
+        else:
+            # If we already did fragment i, just retrieve psi
+            psi_i = wave[i]
+
+        if keep_j:
+            e_j, psi_j = find_psi(frag_j[0], frag_j[1], frag_j[2],
+                                  state, degeneracy[j])
+            H_frag[diag[jx:jy], diag[jx:jy]] = e_j
+            wave[j] = psi_j
+        else:
+            psi_j = wave[j]
+
+        # H = <psi_i|Hij|psi_j>
+        H_frag[ix:iy, jx:jy] = abs(psi_i.T.dot(Hij).dot(psi_j))
+        H_frag[jx:jy, ix:iy] = H_frag[ix:iy, jx:jy]
+    # do single fragment calculations for all missing
+    for i in (set(range(len(degeneracy))) - set(wave.keys())):
+        ix, iy = starts[i], stops[i]
+        logger.debug('Calculating lone fragment {}'.format(i))
+        H, S, ele = run_fragment(fragments[i])
+
+        e_i, psi_i = find_psi(H, S, ele, state, degeneracy[i])
+
+        H_frag[diag[ix:iy], diag[ix:iy]] = e_i
+        # don't need to save the psi for this fragment
+        #wave[i] = psi_i
+
+    return H_frag
 
 
-def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
-                               start=None, stop=None, step=None):
+def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
+                    start=None, stop=None, step=None):
     """Generate Hamiltonian matrix H_frag for each frame in trajectory
 
     Parameters
@@ -70,11 +107,10 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
     Returns
     -------
     hams : KugupuResults namedtuple
-      full Hamiltonian matrix and overlap matrix for each frame.
-      The Hamiltonian and overlap matrices will have shape
-      (nframes, nfrags, nfrags)
+      coupling matrix for each frame
+      with shape (nframes, nfrags * degeneracy, nfrags * degeneracy)
     """
-    Hs, Ss, frames = [], [], []
+    Hs, frames = [], []
 
     nframes = len(u.trajectory[start:stop:step])
     logger.info("Processing {} frames".format(nframes))
@@ -97,20 +133,7 @@ def generate_H_frag_trajectory(u, nn_cutoff, state, degeneracy=None,
     for i, ts in enumerate(u.trajectory[start:stop:step]):
         logger.info("Processing frame {} of {}"
                     "".format(i + 1, nframes))
-
-        dimers = find_dimers(u.atoms.fragments, nn_cutoff)
-
-        H_orb, S_orb, fragsize = run_all_dimers(u.atoms.fragments, dimers)
-
-        if degeneracy is None:
-            # first time through with auto degen
-            H_frag, degeneracy = calculate_H_frag(dimers, fragsize,
-                                                  H_orb, S_orb,
-                                                  state, degeneracy=None)
-        else:
-            H_frag = calculate_H_frag(dimers, fragsize,
-                                      H_orb, S_orb,
-                                      state, degeneracy)
+        H_frag = _single_frame(u.atoms.fragments, nn_cutoff, degeneracy, state)
 
         frames.append(ts.frame)
         Hs.append(H_frag)

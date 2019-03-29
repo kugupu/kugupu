@@ -1,6 +1,7 @@
 """Visualise results"""
 import MDAnalysis as mda
 import numpy as np
+import warnings
 
 COL_DICT = {'r': [1, 0, 0],
             'g': [0, 1, 0],
@@ -116,23 +117,30 @@ def draw_network(network, view=None, color='r',
     view : nglview.NGLWidget
       the nglview object showing the molecule
     """
+    frags = list(network.nodes())
+    if not isinstance(mda.coordinates.memory.MemoryReader,
+                      frags[0].universe.trajectory):
+        warnings.warn("Visualisation works best with in-memory trajectory. "
+                      "Consider using transfer_to_memory")
     import nglview as nv
 
     # move contents of network into primary unit cell
     gather_network(network)
-    frags = list(network.nodes())
 
     if view is None:
         view = nv.NGLWidget()
 
-    if show_molecules:
-        view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
+    # nglview throws a lot of useless warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        if show_molecules:
+            view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
 
-    #view.clear_representations()
-    #view.add_ball_and_stick(opacity=0.5)
+        #view.clear_representations()
+        #view.add_ball_and_stick(opacity=0.5)
 
-    draw_fragment_centers(view, frags, color=color)
-    draw_fragment_links(view, frags, network.edges(), color=color)
+        draw_fragment_centers(view, frags, color=color)
+        draw_fragment_links(view, frags, network.edges(), color=color)
 
     #view.add_unitcell()
 
