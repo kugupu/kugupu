@@ -1,0 +1,14 @@
+name: kgp
+channels:
+ - conda-forge
+dependencies:
+ - python=3.6
+ - yaehmop
+ - mdanalysis
+ - cython
+ - loguru
+ - tqdm
+ - h5py
+ - pyyaml
+ - jupyter
+ - nglview

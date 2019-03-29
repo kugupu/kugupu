@@ -20,10 +20,13 @@ def _find_contacts(fragments, cutoff):
       indices of fragments that are touching, e.g. [[0, 1], [2, 3], ...]
     """
     # indices of atoms within cutoff of each other
-    idx = distances.self_capped_distance(sum(fragments).positions,
+    # TODO: ALso change this line once distances not returned
+    idx, _ = distances.self_capped_distance(sum(fragments).positions,
                                          max_cutoff=cutoff,
                                          box=fragments[0].dimensions,
-                                         return_distances=False)
+                                         # TODO: add this back once MDA cuts release
+                                         #return_distances=False,
+    )
     nfrags = len(fragments)
     fragsizes = [len(f) for f in fragments]
     # translation array from atom index to fragment index
