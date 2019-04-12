@@ -94,11 +94,17 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
     Parameters
     ----------
     u : mda.Universe
-      Universe to analyse
+      Universe to analyse.  All fragments from this Universe will be used
     nn_cutoff : float
-      maximum distance between dimers to consider neighbours
-    degeneracy : int or dict or None
-      number of orbitals deep to go; can be an integer for homo
+      maximum distance of closest approach between dimers to consider
+      neighbours (leading to a tight binding calculation).  A value of
+      5.0 is usually appropriate.
+    degeneracy : int or array or dict or None
+      number of degenerate states on each fragment to consider.
+      int value - single value given to all fragments
+      array - value for each fragment
+      dict - mapping of resname to degeneracy of fragment
+      None - automatically determine degeneracy
     state : str
       'HOMO' or 'LUMO'
     start, stop, step : int, optional
@@ -106,9 +112,11 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
 
     Returns
     -------
-    hams : KugupuResults namedtuple
-      coupling matrix for each frame
-      with shape (nframes, nfrags * degeneracy, nfrags * degeneracy)
+    results : KugupuResults namedtuple
+      namedtuple of results, with attributes:
+      - frames: index of each frame analysed
+      - degeneracy: degeneracy for each fragment in Universe
+      - H_frag: coupling between different fragments
     """
     Hs, frames = [], []
 
