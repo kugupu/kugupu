@@ -96,8 +96,7 @@ def run_fragment(ag):
     nelectrons : int
       number of valence electrons
     """
-    H_mat, S_mat = yaehmop.run_bind(
-        ag.positions.astype(np.float64), ag.names, 0.0)
+    H_mat, S_mat = yaehmop.run_bind(ag.positions, ag.names, 0.0)
     _, nelectrons = count_orbitals(ag)
 
     return H_mat, S_mat, nelectrons
@@ -124,8 +123,8 @@ def run_dimer(ags):
     ag_i, ag_j = ags
     pos = shift_dimer_images(ag_i, ag_j)
 
-    H_mat, S_mat = yaehmop.run_bind(
-        pos.astype(np.float64), (ag_i + ag_j).names, 0.0)
+    logger.debug('Running bind')
+    H_mat, S_mat = yaehmop.run_bind(pos, (ag_i + ag_j).names, 0.0)
 
     orb_i, ele_i = count_orbitals(ag_i)
     orb_j, ele_j = count_orbitals(ag_j)
