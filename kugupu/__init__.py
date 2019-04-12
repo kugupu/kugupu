@@ -27,7 +27,7 @@ def disable_debug_logging():
     logger.stop()
     logger.start(sys.stderr, format="{time} {level} {message}", level="INFO")
 
-disable_debugger()
+disable_debug_logging()
 
 
 from .results_io import KugupuResults, save_results, load_results
