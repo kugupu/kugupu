@@ -4,7 +4,7 @@
 from collections import Counter
 import numpy as np
 from MDAnalysis.lib import distances
-import yaehmop  # pyyaehmop bindings
+import pyyaehmop
 
 from . import logger
 
