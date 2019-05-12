@@ -2,6 +2,7 @@
 
 import numpy as np
 from tqdm import tqdm
+import MDAnalysis as mda
 
 from . import logger
 from . import KugupuResults
@@ -87,8 +88,37 @@ def _single_frame(fragments, nn_cutoff, degeneracy, state):
     return H_frag
 
 
+def _dask_single(top, trj, frame, nn_cutoff, degeneracy, state):
+    # load the Universe
+    u = mda.Universe(top)
+    u.load_new(trj)
+    # select correct frame
+    u.trajectory[frame]
+
+    res = _single_frame(u.atoms.fragments, nn_cutoff, degeneracy, state)
+
+    return res
+
+
+def _dask_coupling(client,
+                   u, nn_cutoff, degeneracy, state,
+                   start=None, stop=None, step=None):
+    import dask
+
+    frames = np.arange(len(u.trajectory))
+    # distribute this to all workers at start
+    future_top = client.scatter(u._topology, broadcast=True)
+
+    futures = []
+    for i in frames[start:stop:step]:
+        futures.append(dask.delayed(_dask_single)(future_top, u.trajectory.filename,
+                                                  i, nn_cutoff, degeneracy, state))
+
+    return client.compute(dask.delayed(np.stack)(futures)).result()
+
+
 def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
-                    start=None, stop=None, step=None):
+                    start=None, stop=None, step=None, client=None):
     """Generate Hamiltonian matrix H_frag for each frame in trajectory
 
     Parameters
@@ -96,9 +126,9 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
     u : mda.Universe
       Universe to analyse.  All fragments from this Universe will be used
     nn_cutoff : float
-      maximum distance of closest approach between dimers to consider
-      neighbours (leading to a tight binding calculation).  A value of
-      5.0 is usually appropriate.
+      maximum distance (in A) of closest approach between dimers to
+      consider neighbours (leading to a tight binding calculation).  A
+      value of 5.0 A is usually adequate.
     degeneracy : int or array or dict or None
       number of degenerate states on each fragment to consider.
       int value - single value given to all fragments
@@ -109,6 +139,9 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
       'HOMO' or 'LUMO'
     start, stop, step : int, optional
       slice through Universe trajectory
+    client : dask distributed Client, optional
+      if given, coupling matrix will be calculated in parallel as a
+      dask distributed job using this client
 
     Returns
     -------
@@ -138,17 +171,25 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
                 deg_arr[i] = degeneracy[frag.residues[0].resname]
             degeneracy = deg_arr
 
-    for i, ts in enumerate(u.trajectory[start:stop:step]):
-        logger.info("Processing frame {} of {}"
-                    "".format(i + 1, nframes))
-        H_frag = _single_frame(u.atoms.fragments, nn_cutoff, degeneracy, state)
+    if client is None:
+        for i, ts in enumerate(u.trajectory[start:stop:step]):
+            logger.info("Processing frame {} of {}"
+                        "".format(i + 1, nframes))
+            H_frag = _single_frame(u.atoms.fragments, nn_cutoff, degeneracy, state)
 
-        frames.append(ts.frame)
-        Hs.append(H_frag)
+            frames.append(ts.frame)
+            Hs.append(H_frag)
+        H_frag = np.stack(Hs)
+        frames = np.array(frames)
+    else:
+        H_frag = _dask_coupling(client, u,
+                                nn_cutoff, degeneracy, state,
+                                start, stop, step)
+        frames = np.arange(len(u.trajectory))[start:stop:step]
 
     logger.info('Done!')
     return KugupuResults(
-        frames=np.array(frames),
-        H_frag=np.stack(Hs),
+        frames=frames,
+        H_frag=H_frag,
         degeneracy=degeneracy,
     )
