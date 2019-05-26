@@ -11,7 +11,7 @@ KUGUPUUU!
 Installation is best done using the conda env file
 
 ```bash
-git clone https://github.com/chapmanlab/kugupu.git
+git clone https://github.com/richardjgowers/kugupu.git
 cd kugupu
 # install requirements
 conda env create -f kgp_env.yml
@@ -21,7 +21,7 @@ cd ../
 
 # Clone and install the Python bindings to yaehmop
 # This will get streamlined later...
-git clone https://github.com/chapmanlab/pyyaehmop.git
+git clone https://github.com/richardjgowers/pyyaehmop.git
 cd yaehmop
 pip install .
 cd ../
