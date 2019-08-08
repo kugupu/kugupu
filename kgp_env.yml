@@ -12,3 +12,4 @@ dependencies:
  - pyyaml
  - jupyter
  - nglview
+ - pytest
