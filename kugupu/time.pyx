@@ -30,6 +30,7 @@ def determine_lifetimes(const double[:, :, :] coupling,
     """
     cdef size_t i, j, k, n
     cdef int nframes, nfrags
+    cdef object d, o
     cdef long[::1] d_v, o_v
     cdef long alive, duration
 
