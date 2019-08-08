@@ -30,6 +30,10 @@ def _single_frame(fragments, nn_cutoff, degeneracy, state):
     H_frag : numpy array
       coupling matrix
     """
+    # make sure that all fragments are whole
+    # ie a fragment isn't split between periodic images
+    for frag in fragments:
+        mda.lib.mdamath.make_whole(frag)
     dimers = find_dimers(fragments, nn_cutoff)
 
     size = degeneracy.sum()
