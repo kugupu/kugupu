@@ -45,34 +45,38 @@ def _single_frame(fragments, nn_cutoff, degeneracy, state):
         ix, iy = starts[i], stops[i]
         jx, jy = starts[j], stops[j]
 
-        keep_i = not i in wave
-        keep_j = not j in wave
         logger.debug('Calculating dimer {}-{}'.format(i, j))
+        # call Yaehmop
         Hij, frag_i, frag_j = run_dimer(ags)
-        if keep_i:
+
+        # lazily calculate the wave function for i and j
+        try:
+            # If we already did fragment i, just retrieve psi
+            psi_i = wave[i]
+        except KeyError:
             # If we didn't have fragment i already done,
-            # calculate the wavefunction and state energy
+            # calculate the state energy and wavefunction
             e_i, psi_i = find_psi(frag_i[0], frag_i[1], frag_i[2],
                                   state, degeneracy[i])
             # fill diagonal with energy of states
+            # this only has to be one as self contribution does not change
             H_frag[diag[ix:iy], diag[ix:iy]] = e_i
             # store the wavefunction for future use
             wave[i] = psi_i
-        else:
-            # If we already did fragment i, just retrieve psi
-            psi_i = wave[i]
 
-        if keep_j:
+        try:
+            psi_j = wave[j]
+        except KeyError:
             e_j, psi_j = find_psi(frag_j[0], frag_j[1], frag_j[2],
                                   state, degeneracy[j])
             H_frag[diag[jx:jy], diag[jx:jy]] = e_j
             wave[j] = psi_j
-        else:
-            psi_j = wave[j]
+
 
         # H = <psi_i|Hij|psi_j>
         H_frag[ix:iy, jx:jy] = abs(psi_i.T.dot(Hij).dot(psi_j))
         H_frag[jx:jy, ix:iy] = H_frag[ix:iy, jx:jy]
+
     # do single fragment calculations for all missing
     for i in (set(range(len(degeneracy))) - set(wave.keys())):
         ix, iy = starts[i], stops[i]
@@ -89,6 +93,21 @@ def _single_frame(fragments, nn_cutoff, degeneracy, state):
 
 
 def _dask_single(top, trj, frame, nn_cutoff, degeneracy, state):
+    """Dask helper function for calculating a single frame
+
+    Parameters
+    ----------
+    top : pickle
+      pickled MDAnalysis Topology, usually broadcasted to workers
+    trj : str
+      filename to the trajectory file
+    frame : int
+      index of the frame to analyse
+    nn_cutoff, degeneracy, state
+      same as for _single_frame
+
+    Reheats the MDAnalysis Universe, loads correct frame then calls _single_frame
+    """
     # load the Universe
     u = mda.Universe(top)
     u.load_new(trj)
