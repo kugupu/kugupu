@@ -1,11 +1,33 @@
 """Visualise results"""
+import io
 import MDAnalysis as mda
+import networkx as nx
 import numpy as np
 import warnings
 
 COL_DICT = {'r': [1, 0, 0],
             'g': [0, 1, 0],
             'b': [0, 0, 1]}
+
+
+def copy_universe(atomgroup):
+    """Make a new Universe containing only atomgroup
+
+    Useful for giving to nglview as the coordinates are safe from modification
+    """
+    f = mda.lib.util.NamedStream(io.StringIO(), 'tmp.pdb')
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        # write out atomgroup to a stream
+        with mda.Writer(f, n_atoms=len(atomgroup)) as w:
+            w.write(atomgroup)
+    # read stream back in as universe
+    f.seek(0)
+    u_new = mda.Universe(f)
+
+    return u_new
+
 
 def move_image(ref_point, atomgroup):
     """Move atomgroup to closest image to ref_point
@@ -71,6 +93,9 @@ def gather_network(g):
       graph with AtomGroups representing fragments as nodes
     """
     frags = list(g.nodes())
+    # make sure fragments are whole
+    for frag in frags:
+        mda.lib.mdamath.make_whole(frag)
 
     box = frags[0].dimensions
     center = box[:3] / 2.
@@ -95,6 +120,45 @@ def gather_network(g):
 
         done.add(center)
 
+
+def draw_fragments(*fragments):
+    """Draw many fragments
+
+    Will make molecules whole and choose the image of each
+    which makes them as close as possible
+
+    Parameters
+    ----------
+    fragments : list of AtomGroup
+      the thing to draw
+    """
+    import nglview as nv
+
+    u = copy_universe(sum(fragments))
+    u.transfer_to_memory()
+
+    frags = u.atoms.fragments
+    for f in frags:
+        mda.lib.mdamath.make_whole(f)
+    # generate fragment positions
+    pos = gen_frag_positions(frags)
+    distmat = mda.lib.distances.distance_array(
+        pos, pos, box=u.dimensions)
+    # make self contribution infinite
+    distmat[np.diag_indices_from(distmat)] = np.inf
+
+    # time to make graph
+    g = nx.Graph()
+    g.add_nodes_from(frags)
+    for x, y, _ in nx.minimum_spanning_edges(nx.Graph(distmat)):
+        g.add_edge(frags[x], frags[y])
+
+    # gather network into same image
+    gather_network(g)
+
+    v = nv.show_mdanalysis(sum(g.nodes()))
+
+    return v
 
 def draw_network(network, view=None, color='r',
                  show_molecules=True):
