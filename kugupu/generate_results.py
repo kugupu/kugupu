@@ -10,6 +10,40 @@ from .dimers import find_dimers
 from ._yaehmop import run_dimer, run_fragment
 from ._hamiltonian_reduce import find_psi
 
+# Elements known to yaehmop (default eht_parms at least...)
+REF_ELEMS = set('AC AG AL AM AR AS AT AU B BA BE BI BK BR C CA CD CE CF CL CM '
+                'CO CR CS CU DY ER ES EU F FE FM FR GA GD GE H HE HF HG HO I '
+                'IN IR K KR LA LI LR LU MD MG MN MO N NA NB ND NE NI NO NP O '
+                'OS P PA PB PD PM PO PR PT PU RA RB RE RH RN RU S SB SC SE SI '
+                'SM SN SR TA TB TC TE TH TI TL TM U UNQ V W XE Y YB ZN ZR'
+                ''.split())
+
+def _check_universe(universe):
+    """Check universe is suitable for calculations
+
+    Checks
+    - existence of bonds
+    - existence of names OR types
+    - that all names are an element recognised by yaehmop
+
+    Raises
+    ------
+    ValueError
+      if anything wrong
+    """
+    if not hasattr(universe.atoms, 'bonds'):
+        raise ValueError("Universe has no bond information. "
+                         "Maybe try guess_bonds?")
+    if not (hasattr(universe.atoms, 'names')):
+        raise ValueError("Universe has no names, "
+                         "these need to be set to element names")
+    elems = set(universe.atoms.names)
+    elems = {v.upper() for v in elems}
+    new = elems - REF_ELEMS
+    if new:  # if any user supplied elements not in yaehmop elements
+        raise ValueError("Unknown elements found: {} "
+                         "yaehmop knows of: {}".format(new, REF_ELEMS))
+
 
 def _single_frame(fragments, nn_cutoff, degeneracy, state):
     """Results for a single frame
@@ -174,6 +208,8 @@ def coupling_matrix(u, nn_cutoff, state, degeneracy=None,
       - degeneracy: degeneracy for each fragment in Universe
       - H_frag: coupling between different fragments
     """
+    _check_universe(u)
+
     Hs, frames = [], []
 
     nframes = len(u.trajectory[start:stop:step])
