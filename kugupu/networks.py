@@ -209,33 +209,35 @@ def H_address_to_fragment(degeneracy):
     return np.repeat(np.arange(degeneracy.shape[0]), degeneracy)
 
 
-def find_networks(fragments, H, degeneracy, thresh_list, e_tol=0.3):
-    """Find connectivity matrix
+def find_networks(fragments, H, degeneracy, threshold, e_tol=0.3):
+    """Find molecular networks between fragments for given threshold
 
-    fragments i & j will be considered connected if:
-      H[i, j] < thresh
-    and
+    Fragments i & j will be considered "connected" if:
+      abs(H[i, j]) > threshold
+    AND
       abs(H[i, i] - H[j, j]) < e_tol
 
     Parameters
     ----------
-    fragments : list of atomgroups
+    fragments : list of AtomGroup
       will be used as node labels
     H : np.array
-      Hamiltonian matrix between fragment states
+      Hamiltonian matrix between fragment states for a single
+      time frame
     degeneracy : numpy array
-      number of states for each fragment
-    thresh_list : list of float
-      different threshold values to build networks for
+      number of degenerate states for each molecule in fragments
+    threshold : float
+      threshold value to build networks for
     e_tol : float
       maximum allowed different in energy levels (in eV)
       between two states
 
     Returns
     -------
-    graphs : dictionary of list of nx.Graph
-      for each threshold value, returns a list of networkx Graphs
-      refer to fragment ids.  Each list of Graph is sorted by size
+    graphs : list of nx.Graph
+      returns a list of networkx Graphs, sorted according to descending
+      graph size.  Each graph has AtomGroups as nodes, edges represent
+      molecular coupling and are weighted in eV
     """
     # turns list of fragments into numpy array to allow fancy indexing
     frag_arr = np.empty(len(fragments), dtype=object)
@@ -248,32 +250,33 @@ def find_networks(fragments, H, degeneracy, thresh_list, e_tol=0.3):
     # remove diagonal from H
     np.fill_diagonal(H_ij, 0)
 
+    g = nx.Graph()
+    # all fragments are nodes
+    g.add_nodes_from(frag_arr)
+    # Now to find the edges...
+    # indices of where H_ij is above threshold
+    i, j = np.where(np.abs(H_ij) > threshold)
+    # check that states are within a certain energy tolerance
+    e_crit = np.abs(energies[i] - energies[j]) < e_tol
+    # filter i-j pairs according to energy tolerance
+    i, j = i[e_crit], j[e_crit]
+
+    # convert MO index to fragment index
+    # ie if molecules had multiple degeneracy,
+    # this is where that gets squashed down into molecular basis
     H_map = H_address_to_fragment(degeneracy)
+    i, j = H_map[i], H_map[j]
+    frag_i, frag_j = frag_arr[i], frag_arr[j]
 
-    graphs = {}
-    for thresh in thresh_list:
-        g = nx.Graph()
-        #TODO edge values should be abs(H)
-        g.add_nodes_from(frag_arr)
+    # add fragments to a network if their H is above threshold
+    # TODO: Combining multiple degeneracy edges?
+    g.add_weighted_edges_from(zip(frag_i, frag_j, H_ij[i,j]),
+                              weight='Hij')
 
-        i, j = np.where(H_ij > thresh)
-        # check that states are within a certain energy
-        e_crit = np.abs(energies[i] - energies[j]) < e_tol
-        i, j = i[e_crit], j[e_crit]
+    # returns a dictionary where thresholds are keys, and values are
+    # sorted lists of networks (the biggest is first)
+    graphs = sorted(nx.connected_component_subgraphs(g),
+                    key=lambda x: len(x),
+                    reverse=True)
 
-        # convert MO index to fragment index
-        i, j = H_map[i], H_map[j]
-
-        frag_i = frag_arr[i]
-        frag_j = frag_arr[j]
-
-        # add fragments to a network if their H is above threshold
-        g.add_weighted_edges_from(zip(frag_i, frag_j, H_ij[i,j]),
-                                  weight='Hij')
-
-        # returns a dictionary where thresholds are keys, and values are
-        # sorted lists of networks (the biggest is first)
-        graphs[thresh] = sorted(nx.connected_component_subgraphs(g),
-                                key=lambda x: len(x),
-                                reverse=True)
     return graphs
