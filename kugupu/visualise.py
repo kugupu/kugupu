@@ -10,7 +10,7 @@ COL_DICT = {'r': [1, 0, 0],
             'b': [0, 0, 1]}
 
 
-def copy_universe(atomgroup):
+def _copy_universe(atomgroup):
     """Make a new Universe containing only atomgroup
 
     Useful for giving to nglview as the coordinates are safe from modification
@@ -31,7 +31,7 @@ def copy_universe(atomgroup):
     return u_new
 
 
-def move_image(ref_point, atomgroup):
+def _move_image(ref_point, atomgroup):
     """Move atomgroup to closest image to ref_point
 
     Parameters
@@ -56,20 +56,20 @@ def move_image(ref_point, atomgroup):
     return shift
 
 
-def gen_frag_positions(fragments):
+def _gen_frag_positions(fragments):
     return np.array([frag.center_of_geometry() for frag in fragments])
 
 
-def draw_fragment_centers(view, fragments, color='r'):
+def _draw_fragment_centers(view, fragments, color='r'):
     """Draw fragment centers onto nglview View"""
-    pos = gen_frag_positions(fragments).flatten().tolist()
+    pos = _gen_frag_positions(fragments).flatten().tolist()
 
     view.shape.add_buffer("sphere",
                          position=pos,
                          color=COL_DICT[color] * len(fragments),
                          radius=[1.5] * len(fragments))
 
-def draw_fragment_links(view, fragments, links, color='r'):
+def _draw_fragment_links(view, fragments, links, color='r'):
     """Draw links between fragment centers"""
     p1, p2 = [], []
     for i, j in links:
@@ -97,7 +97,7 @@ def gather_network(frags):
     for f in frags:
         mda.lib.mdamath.make_whole(f)
     # generate fragment positions
-    pos = gen_frag_positions(frags)
+    pos = _gen_frag_positions(frags)
     distmat = mda.lib.distances.distance_array(
         pos, pos, box=frags[0].dimensions)
     # make self contribution infinite
@@ -114,7 +114,7 @@ def gather_network(frags):
     # find fragment most near the center?
     center_frag = np.argmin(
         mda.lib.distances.distance_array(
-            gen_frag_positions(frags),
+            pos,
             center
         )
     )
@@ -127,7 +127,7 @@ def gather_network(frags):
         for neb in g[center]:
             if neb in starts:
                 continue
-            move_image(ref_point, neb)
+            _move_image(ref_point, neb)
             starts.add(neb)
 
         done.add(center)
@@ -148,7 +148,7 @@ def draw_fragments(*fragments):
     """
     import nglview as nv
 
-    u = copy_universe(sum(fragments))
+    u = _copy_universe(sum(fragments))
 
     # gather network into same image
     g = gather_network(u.atoms.fragments)
@@ -179,15 +179,12 @@ def draw_network(network, view=None, color='r',
     view : nglview.NGLWidget
       the nglview object showing the molecule
     """
-    frags = list(network.nodes())
-    if not isinstance(mda.coordinates.memory.MemoryReader,
-                      frags[0].universe.trajectory):
-        warnings.warn("Visualisation works best with in-memory trajectory. "
-                      "Consider using transfer_to_memory")
     import nglview as nv
 
+    u = _copy_universe(sum(network.nodes()))
+
     # move contents of network into primary unit cell
-    gather_network(network)
+    g = gather_network(u.atoms.fragments)
 
     if view is None:
         view = nv.NGLWidget()
@@ -196,13 +193,13 @@ def draw_network(network, view=None, color='r',
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         if show_molecules:
-            view.add_trajectory(sum(frags).select_atoms('prop mass > 2.0'))
+            view.add_trajectory(u.select_atoms('prop mass > 2.0'))
 
         #view.clear_representations()
         #view.add_ball_and_stick(opacity=0.5)
 
-        draw_fragment_centers(view, frags, color=color)
-        draw_fragment_links(view, frags, network.edges(), color=color)
+        #_draw_fragment_centers(view, frags, color=color)
+        #_draw_fragment_links(view, frags, network.edges(), color=color)
 
     #view.add_unitcell()
 
