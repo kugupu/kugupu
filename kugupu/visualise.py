@@ -14,7 +14,22 @@ def _copy_universe(atomgroup):
     """Make a new Universe containing only atomgroup
 
     Useful for giving to nglview as the coordinates are safe from modification
+
+    Returns
+    -------
+    u_new : mda.Universe
+      new copy of AtomGroup
+    mapping : dict
+      maps old AtomGroups to new AtomGroups
     """
+    # we want to be able to remap the new Universe to the old one#
+    # so lets hide some information in the pdb file
+    if not hasattr(atomgroup, 'tempfactors'):
+        atomgroup.universe.add_TopologyAttr('tempfactors')
+    for i, frag in enumerate(atomgroup.fragments):
+        # can "store" up to 1,000 frag indices...
+        frag.tempfactors = i / 100.
+
     f = mda.lib.util.NamedStream(io.StringIO(), 'tmp.pdb')
 
     with warnings.catch_warnings():
@@ -25,10 +40,15 @@ def _copy_universe(atomgroup):
     # read stream back in as universe
     f.seek(0)
     u_new = mda.Universe(f)
-
     u_new.transfer_to_memory()
 
-    return u_new
+    # build mapping of old fragments to new
+    new_ags = {round(f.tempfactors[0] * 100): f
+               for f in u_new.atoms.fragments}
+    mapping = {f: new_ags[round(f.tempfactors[0] * 100)]
+               for f in atomgroup.fragments}
+
+    return u_new, mapping
 
 
 def _move_image(ref_point, atomgroup):
@@ -69,6 +89,7 @@ def _draw_fragment_centers(view, fragments, color='r'):
                          color=COL_DICT[color] * len(fragments),
                          radius=[1.5] * len(fragments))
 
+
 def _draw_fragment_links(view, fragments, links, color='r'):
     """Draw links between fragment centers"""
     p1, p2 = [], []
@@ -83,7 +104,7 @@ def _draw_fragment_links(view, fragments, links, color='r'):
                           radius=[0.75] * len(links))
 
 
-def gather_network(frags):
+def _gather_network(frags):
     """Move contents of g to same image
 
     Will pick centermost fragment in box as start point,
@@ -136,7 +157,7 @@ def gather_network(frags):
 
 
 def draw_fragments(*fragments):
-    """Draw many fragments
+    """Draw many fragments in a Jupyter notebook
 
     Will make molecules whole and choose the image of each
     which makes them as close as possible
@@ -148,10 +169,10 @@ def draw_fragments(*fragments):
     """
     import nglview as nv
 
-    u = _copy_universe(sum(fragments))
+    u, _ = _copy_universe(sum(fragments))
 
     # gather network into same image
-    g = gather_network(u.atoms.fragments)
+    g = _gather_network(u.atoms.fragments)
 
     v = nv.show_mdanalysis(sum(g.nodes()))
 
@@ -181,10 +202,17 @@ def draw_network(network, view=None, color='r',
     """
     import nglview as nv
 
-    u = _copy_universe(sum(network.nodes()))
+    u, mapping = _copy_universe(sum(network.nodes()))
+
+    # recreate network referring to new Universe
+    new_network = nx.Graph()
+    new_network.add_nodes_from(u.atoms.fragments)
+    for (x, y) in network.edges:
+        x2, y2 = mapping[x], mapping[y]
+        new_network.add_edge(x2, y2)
 
     # move contents of network into primary unit cell
-    g = gather_network(u.atoms.fragments)
+    g = _gather_network(u.atoms.fragments)
 
     if view is None:
         view = nv.NGLWidget()
@@ -198,8 +226,8 @@ def draw_network(network, view=None, color='r',
         #view.clear_representations()
         #view.add_ball_and_stick(opacity=0.5)
 
-        #_draw_fragment_centers(view, frags, color=color)
-        #_draw_fragment_links(view, frags, network.edges(), color=color)
+        _draw_fragment_centers(view, g.nodes(), color=color)
+        _draw_fragment_links(view, u.atoms.fragments, new_network.edges, color=color)
 
     #view.add_unitcell()
 
