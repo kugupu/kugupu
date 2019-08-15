@@ -73,3 +73,30 @@ def load_results(filename):
         H_frag=H_frag,
         degeneracy=deg,
     )
+
+
+def concatenate_results(*results):
+    """Concatenate two result sets
+
+    Results must be provided in order, the frame indices won't
+    be checked.
+
+    Parameters
+    ----------
+    results : iterable of KugupuResults
+      the results sets to combine, in order
+
+    Returns
+    -------
+    results : KugupuResults
+      combined results
+    """
+    frames = np.concatenate([r.frames for r in results])
+
+    H_frag = np.concatenate([r.H_frag for r in results])
+
+    return KugupuResults(
+        frames=frames,
+        H_frag=H_frag,
+        degeneracy=results[0].degeneracy,
+    )
