@@ -3,6 +3,7 @@
 """
 from collections import namedtuple
 from datetime import datetime
+import numpy as np
 import h5py
 
 from . import logger
