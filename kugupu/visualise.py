@@ -93,9 +93,15 @@ def _draw_fragment_centers(view, fragments, color='r'):
 def _draw_fragment_links(view, fragments, links, color='r'):
     """Draw links between fragment centers"""
     p1, p2 = [], []
+    boxsize = fragments[0].dimensions[:3].min() / 2.
     for i, j in links:
-        p1 += i.center_of_geometry().tolist()
-        p2 += j.center_of_geometry().tolist()
+        # check that bond length is sensible...
+        i_pos = i.center_of_geometry()
+        j_pos = j.center_of_geometry()
+        if mda.lib.distances.calc_bonds(i_pos, j_pos) > boxsize:
+            continue
+        p1 += i_pos.tolist()
+        p2 += j_pos.tolist()
 
     view.shape.add_buffer("cylinder",
                           position1=p1,
