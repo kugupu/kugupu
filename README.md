@@ -17,14 +17,6 @@ cd kugupu
 conda env create -f kgp_env.yml
 # install the kugupu package
 pip install .
-cd ../
-
-# Clone and install the Python bindings to yaehmop
-# This will get streamlined later...
-git clone https://github.com/richardjgowers/pyyaehmop.git
-cd yaehmop
-pip install .
-cd ../
 ```
 
 ### Example notebooks
