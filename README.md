@@ -1,6 +1,6 @@
 <img src="docs/kugupu_logo.png" width="400">
 
-## **kgp - a molecular network generator to study charge transport pathways in amorphous materials** 
+## **kugupu - a molecular network generator to study charge transport pathways in amorphous materials** 
 
 
 kgp is a package for the postprocessing of molecular dynamics trajectories of organic semiconductors. It is built on MDAnalysis, NetworkX and YAeHMOP.
