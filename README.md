@@ -1,10 +1,3 @@
-kugupu
-==============================
-[//]: # (Badges)
-[![Travis Build Status](https://travis-ci.org/REPLACE_WITH_OWNER_ACCOUNT/kugupu.png)](https://travis-ci.org/REPLACE_WITH_OWNER_ACCOUNT/kugupu)
-[![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/kugupu/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/kugupu/branch/master)
-
-
 <img src="docs/kugupu_logo.png" width="400">
 
 ## **kgp - a molecular network generator to study charge transport pathways in amorphous materials** 
