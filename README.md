@@ -31,7 +31,7 @@ jupyter notebook
 
 ### Copyright
 
-Copyright (c) 2018, Micaela Matta and Richard J Gowers
+Copyright (c) 2018-2019, Micaela Matta and Richard J Gowers
 
 
 #### Acknowledgements

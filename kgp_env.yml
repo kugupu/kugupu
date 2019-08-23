@@ -13,3 +13,4 @@ dependencies:
  - jupyter
  - nglview
  - pytest
+ - distributed

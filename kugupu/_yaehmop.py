@@ -4,7 +4,6 @@
 from collections import Counter
 import numpy as np
 from MDAnalysis.lib import distances
-import pyyaehmop
 
 from . import _pyeht
 from . import logger
@@ -97,7 +96,7 @@ def run_fragment(ag):
     nelectrons : int
       number of valence electrons
     """
-    H_mat, S_mat = pyyaehmop.run_bind(ag.positions, ag.names, 0.0)
+    H_mat, S_mat = _pyeht.run_bind(ag.positions, ag.names, 0.0)
     _, nelectrons = count_orbitals(ag)
 
     return H_mat, S_mat, nelectrons
@@ -125,7 +124,7 @@ def run_dimer(ags):
     pos = shift_dimer_images(ag_i, ag_j)
 
     logger.debug('Running bind')
-    H_mat, S_mat = pyyaehmop.run_bind(pos, (ag_i + ag_j).names, 0.0)
+    H_mat, S_mat = _pyeht.run_bind(pos, (ag_i + ag_j).names, 0.0)
 
     orb_i, ele_i = count_orbitals(ag_i)
     orb_j, ele_j = count_orbitals(ag_j)
