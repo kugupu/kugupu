@@ -6,6 +6,7 @@ import numpy as np
 from MDAnalysis.lib import distances
 import pyyaehmop
 
+from . import _pyeht
 from . import logger
 
 

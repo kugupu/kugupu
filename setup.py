@@ -6,18 +6,32 @@ from setuptools import setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
 import versioneer
+import os
 
 DOCLINES = __doc__.split("\n")
+
+include_dirs = []
+if 'CONDA_PREFIX' in os.environ:
+    include_dirs.append(os.path.join(os.environ['CONDA_PREFIX'], 'include'))
+
 
 # Define Cython modules
 extensions = [
     Extension(name='kugupu.time',
               sources=['kugupu/time.pyx'],
               extra_compile_args = [
-                  '-std=c99', '-ffast-math', '-O3', '-funroll-loops',
+                  '-std=c99', '-ffast-math', '-O3',
               ],
               define_macros=[('CYTHON_TRACE', '1')],
     ),
+    Extension(name='kugupu._pyeht',
+              sources=['kugupu/pyeht.pyx'],
+              libraries=['yaehmop_eht', 'lapack', 'blas'],
+              include_dirs=include_dirs,
+              extra_compile_args = [
+                  '-std=c99', '-ffast-math', '-O3',
+              ],
+    )
 ]
 
 setup(
