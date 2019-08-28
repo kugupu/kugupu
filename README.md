@@ -11,7 +11,7 @@ kgp is a package for the postprocessing of molecular dynamics trajectories of or
 Installation is best done using the conda env file
 
 ```bash
-git clone https://github.com/richardjgowers/kugupu.git
+git clone https://github.com/kugupu/kugupu.git
 cd kugupu
 # install requirements
 conda env create -f kgp_env.yml
