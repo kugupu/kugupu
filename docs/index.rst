@@ -10,6 +10,11 @@ Welcome to kugupu's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   theory_overview
+   generating_results
+   networks
+   time_analysis
+   visualisation
 
 
 Indices and tables

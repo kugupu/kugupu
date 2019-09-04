@@ -19,8 +19,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'KUGUPUUU!'
-copyright = "2018, Micaela Matta and Richard J Gowers"
+project = 'Kugupu'
+copyright = "2018-2019, Micaela Matta and Richard J Gowers"
 author = 'Micaela Matta and Richard J Gowers'
 
 # The short X.Y version
@@ -41,6 +41,7 @@ release = ''
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
