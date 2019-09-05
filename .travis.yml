@@ -31,24 +31,14 @@ before_install:
   - python -V
 
 install:
-
     # Create test environment for package
-  - conda create -n test python=$PYTHON_VER pip pytest pytest-cov
-  - conda activate test
-
-    # Install pip only modules
-  - pip install codecov
-
-    # Build and install package
-  - conda build --python=$PYTHON_VER devtools/conda-recipe
-  - conda install --use-local kugupu
-
+  - conda env create -f kgp_env.yml
+  - conda activate kgp
+  - pip install .
 
 script:
-  - pytest -v --cov=kugupu kugupu/tests/
+  - kugupu -h
+  #- pytest -v --cov=kugupu kugupu/tests/
 
 notifications:
     email: false
-
-after_success:
-  - codecov
