@@ -13,8 +13,9 @@ Installation is best done using the conda env file
 ```bash
 git clone https://github.com/kugupu/kugupu.git
 cd kugupu
-# install requirements
+# install requirements into new environment
 conda env create -f kgp_env.yml
+conda activate kgp
 # install the kugupu package
 pip install .
 ```
