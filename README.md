@@ -1,5 +1,7 @@
 <img src="docs/kugupu_logo.png" width="400">
 
+[![Build Status](https://travis-ci.com/kugupu/kugupu.svg?branch=master)](https://travis-ci.com/kugupu/kugupu)
+
 ## **kugupu - a molecular network generator to study charge transport pathways in amorphous materials** 
 
 
