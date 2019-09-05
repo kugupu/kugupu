@@ -14,3 +14,4 @@ dependencies:
  - nglview
  - pytest
  - distributed
+ - docopt
