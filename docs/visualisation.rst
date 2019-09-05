@@ -13,7 +13,7 @@ To fix this,
 from a command line terminal run "``nglview enable``".
 This should produce some output ending with "Validating: OK".
 Once this is done, make sure to restart the Jupyter notebook server,
-(not just the notebook session) and the problem should be fixed.
+(or restart the notebook session and refresh the browser) and the problem should be fixed.
 
 
 API Reference
