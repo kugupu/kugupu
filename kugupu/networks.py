@@ -227,10 +227,10 @@ def H_address_to_fragment(degeneracy):
 def find_networks(fragments, H, degeneracy, threshold, e_tol=0.3):
     """Find molecular networks between fragments for given threshold
 
-    Fragments i & j will be considered "connected" if:
-      abs(H[i, j]) > threshold
-    AND
-      abs(H[i, i] - H[j, j]) < e_tol
+    Fragments i & j will be considered "connected" if
+      :math:`abs(H[i, j]) > threshold`
+    and
+      :math:`abs(H[i, i] - H[j, j]) < e_{tol}`
 
     Parameters
     ----------
