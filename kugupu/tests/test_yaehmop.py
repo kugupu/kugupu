@@ -2,7 +2,7 @@
 
 
 """
-from kugupu import yaehmop
+from kugupu import _yaehmop as yaehmop
 import numpy as np
 from numpy.testing import assert_equal, assert_almost_equal
 import os

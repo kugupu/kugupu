@@ -49,6 +49,7 @@ cdef extern from "yaehmop/bind.h":
         Z_mat_type Zmat_loc
         int ns, np, nd, nf
         real_t coul_s, coul_p, coul_d, coul_f
+        real_t exp_s, exp_p, exp_d, exp_f, exp_d2, exp_f2
         real_t coeff_d1, coeff_d2, coeff_f1, coeff_f2
         real_t s_A, s_B, s_C
         real_t p_A, p_B, p_C
@@ -189,6 +190,27 @@ cdef extern from "yaehmop/prototypes.h":
     void set_details_defaults(detail_type*)
     void set_cell_defaults(cell_type*)
     void cleanup_memory()
+
+
+def check_struct_sizes():
+    # these are manually taken from the C using sizeof
+    REF_ATOMTYPE_SIZE = 576
+    REF_DETAILTYPE_SIZE = 952
+    REF_KPOINT_SIZE = 40
+
+    ok = True
+
+    if sizeof(atom_type) != REF_ATOMTYPE_SIZE:
+        print("Got wrong atom_type struct size, something is wrong")
+        ok = False
+    if sizeof(detail_type) != REF_DETAILTYPE_SIZE:
+        print("Got wrong detail_type struct size, something is wrong")
+        ok = False
+    if sizeof(k_point_type) != REF_KPOINT_SIZE:
+        print("Got wrong k_point_type struct size, something is wrong")
+        ok = False
+
+    return ok
 
 
 cdef void customise_details(detail_type* details):

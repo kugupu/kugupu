@@ -23,6 +23,8 @@ from MDAnalysis.lib import distances
 from . import _pyeht
 from . import logger
 
+_pyeht.check_struct_sizes()
+
 
 def shift_dimer_images(frag_i, frag_j):
     """Determine positions that place frag_j next to frag_i
