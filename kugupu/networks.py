@@ -290,7 +290,7 @@ def find_networks(fragments, H, degeneracy, threshold, e_tol=0.3):
 
     # returns a dictionary where thresholds are keys, and values are
     # sorted lists of networks (the biggest is first)
-    graphs = sorted(nx.connected_component_subgraphs(g),
+    graphs = sorted([g.subgraph(c) for c in nx.connected_components(g)],
                     key=lambda x: len(x),
                     reverse=True)
 
