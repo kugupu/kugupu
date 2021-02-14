@@ -15,8 +15,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
 from MDAnalysis.lib import distances
+from MDAnalysis.lib.util import unique_rows
 
 from . import logger
+
+
 
 
 def _find_contacts(fragments, cutoff):
@@ -35,23 +38,27 @@ def _find_contacts(fragments, cutoff):
       indices of fragments that are touching, e.g. [[0, 1], [2, 3], ...]
     """
     # indices of atoms within cutoff of each other
-    # TODO: ALso change this line once distances not returned
-    idx, _ = distances.self_capped_distance(sum(fragments).positions,
+    idx = distances.self_capped_distance(sum(fragments).positions,
                                          max_cutoff=cutoff,
                                          box=fragments[0].dimensions,
-                                         # TODO: add this back once MDA cuts release
-                                         #return_distances=False,
+                                         return_distances=False,
     )
+    # TODO: Can optimise if all fragments are same size
     nfrags = len(fragments)
     fragsizes = [len(f) for f in fragments]
     # translation array from atom index to fragment index
     translation = np.repeat(np.arange(nfrags), fragsizes)
     # this array now holds pairs of fragment indices
     fragidx = translation[idx]
-    # remove self contributions (i==j) and don't double count (i<j)
-    fragidx = fragidx[fragidx[:, 0] < fragidx[:, 1]]
+    # remove self contributions (i==j)
+    fragidx = fragidx[fragidx[:, 0] != fragidx[:, 1]]
+    fragidx = unique_rows(fragidx)
 
-    return fragidx
+    # make first entry always less than second, e.g. (2, 1) -> (1, 2)
+    flipped = fragidx[:, 0] > fragidx[:, 1]
+    fragidx[flipped] = np.fliplr(fragidx[flipped])
+
+    return unique_rows(fragidx)
 
 
 def find_dimers(fragments, cutoff):
