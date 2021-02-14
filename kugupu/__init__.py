@@ -19,13 +19,13 @@ from loguru import logger
 
 def enable_debug_logging():
     """Increase amount of logging"""
-    logger.stop()
-    logger.start(sys.stderr, format="{time} {level} {message}", level="DEBUG")
+    logger.remove()
+    logger.add(sys.stderr, format="{time} {level} {message}", level="DEBUG")
 
 def disable_debug_logging():
     """Use a normal amount of logging"""
-    logger.stop()
-    logger.start(sys.stderr, format="{time} {level} {message}", level="INFO")
+    logger.remove()
+    logger.add(sys.stderr, format="{time} {level} {message}", level="INFO")
 
 disable_debug_logging()
 
