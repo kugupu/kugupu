@@ -53,11 +53,14 @@ setup(
     # Optional include package data to ship with your package
     # Comment out this line to prevent the files from being packaged with your software
     # Extend/modify the list to include/exclude other items as need be
-    package_data={'kugupu': ["data/lammps.data.bz2",
-                             "data/run9last20.dcd",
-                             "data/H_matrix.npz",
-                             "data/S_matrix.npz",
-                             "data/matrices_traj.npz",
+    package_data={'kugupu': [
+        "data/mini.pdb", "data/mini.dcd",
+        "data/full_traj.hdf5",
+        "data/lammps.data.bz2",
+        "data/run9last20.dcd",
+        "data/H_matrix.npz",
+        "data/S_matrix.npz",
+        "data/matrices_traj.npz",
     ]},
 
     # Additional entries you may want simply uncomment the lines you want and fill in the data
