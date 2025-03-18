@@ -2,7 +2,7 @@ name: kgp
 channels:
  - conda-forge
 dependencies:
- - python=3.6
+ - python
  - yaehmop
  - mdanalysis>=0.20
  - cython

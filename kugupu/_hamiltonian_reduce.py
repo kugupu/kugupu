@@ -125,7 +125,7 @@ def find_fragment_eigenvalues_auto_degen(H_orb, S_orb,
         # v - eigenvectors
         # grab only (lo->hi) eigenvalues
         e, v = linalg.eigh(frag_H, frag_S, lower=False,
-                           eigvals=(lo, hi))
+                           subset_by_index=[lo, hi])
 
         # eigenvalues (orbital energies) are sorted
         if state.lower() == 'homo':
@@ -196,7 +196,7 @@ def find_fragment_eigenvalues(H_orb, S_orb, n_electrons, state,
         # v - eigenvectors
         # grab only (lo->hi) eigenvalues
         e, v = linalg.eigh(frag_H, frag_S, lower=False,
-                       eigvals=(lo, hi))
+                           subset_by_index=[lo, hi])
 
         e_frag[degen_counter:degen_counter + degeneracy[frag]] = e
         v_frag[frag] = v.real
