@@ -34,10 +34,14 @@ jupyter notebook
 
 ### Copyright
 
-Copyright (c) 2018-2019, Micaela Matta and Richard J Gowers
+Copyright (c) 2018-2025, Micaela Matta and Richard J Gowers
 
 
-#### Acknowledgements
+### Why Kugupu?
+
+See this [Portlandia clip on youtube](https://www.youtube.com/watch?v=DGtq1GlmaAw) for context. 
+
+### Acknowledgements
  
 Project based on the 
 [Computational Chemistry Python Cookiecutter](https://github.com/choderalab/cookiecutter-python-comp-chem)
