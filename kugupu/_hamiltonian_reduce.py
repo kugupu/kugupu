@@ -58,7 +58,7 @@ def find_psi(H, S, n_electrons, state, degeneracy):
     # v - eigenvectors
     # grab only (lo->hi) eigenvalues
     e, v = linalg.eigh(H, S, lower=False,
-                       eigvals=(lo, hi))
+                       subset_by_index=[lo, hi])
 
     return e, v
 
