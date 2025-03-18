@@ -40,3 +40,6 @@ from .generate_results import coupling_matrix
 from . import cli
 from . import visualise
 # logger.start(sys.stdout, colorize=True, format="<green>{time}</green> <level>{message}</level>")
+
+from . import _version
+__version__ = _version.get_versions()['version']
