@@ -18,14 +18,14 @@ if 'CONDA_PREFIX' in os.environ:
 # Define Cython modules
 extensions = [
     Extension(name='kugupu.time',
-              sources=['kugupu/time.pyx'],
+              sources=['src/kugupu/time.pyx'],
               extra_compile_args = [
                   '-std=c99', '-ffast-math', '-O3',
               ],
               define_macros=[('CYTHON_TRACE', '1')],
     ),
     Extension(name='kugupu._pyeht',
-              sources=['kugupu/pyeht.pyx'],
+              sources=['src/kugupu/pyeht.pyx'],
               libraries=['yaehmop_eht', 'lapack', 'blas'],
               include_dirs=include_dirs,
               extra_compile_args = [
@@ -45,7 +45,7 @@ setup(
     license='MIT',
 
     # Which Python importable modules should be included when your package is installed
-    packages=['kugupu', "kugupu.tests"],
+    packages=['src/kugupu', "src/kugupu.tests"],
     scripts=['bin/kugupu'],
     ext_modules = cythonize(extensions,
                             compiler_directives={'linetrace': True},
