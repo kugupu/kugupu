@@ -19,3 +19,6 @@ jobs:
       run: |
         conda install pytest
         pytest
+    - name: Codecov
+      uses: codecov/codecov-action@v5.4.0
+      
