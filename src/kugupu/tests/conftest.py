@@ -1,14 +1,10 @@
-import numpy as np
 import os
-import shutil
 import pytest
 import MDAnalysis as mda
-from pkg_resources import resource_filename
+from importlib.resources import as_file, files
 
 import kugupu as kgp
 
-
-DATA_DIR = resource_filename('kugupu', 'data')
 
 @pytest.fixture
 def in_tmpdir(tmp_path):
@@ -19,12 +15,14 @@ def in_tmpdir(tmp_path):
     finally:
         os.chdir(cwd)
 
+
 @pytest.fixture
 def system():
-    top = os.path.join(DATA_DIR, 'lammps.data.bz2')
-    traj = os.path.join(DATA_DIR, 'run9last20.dcd')
+    top_src = files('kugupu.data').joinpath('lammps.data.bz2')
+    traj_src = files('kugupu.data').joinpath('run9last20.dcd')
 
-    return top, traj
+    with as_file(top_src) as top, as_file(traj_src) as traj:
+        return str(top), str(traj)
 
 
 @pytest.fixture
@@ -49,9 +47,12 @@ def u(system):
 
 @pytest.fixture
 def mini_system():
-    top = os.path.join(DATA_DIR, 'mini.pdb')
-    traj = os.path.join(DATA_DIR, 'mini.dcd')
-    return top, traj
+    top_src = files('kugupu.data').joinpath('mini.pdb')
+    traj_src = files('kugupu.data').joinpath('mini.dcd')
+
+    with as_file(top_src) as top, as_file(traj_src) as traj:
+        return str(top), str(traj)
+
 
 @pytest.fixture
 def mini_u(mini_system):
@@ -66,7 +67,8 @@ def mini_ix():
 
 @pytest.fixture
 def results_file():
-    return os.path.join(DATA_DIR, 'full_traj.hdf5')
+    with as_file(files('kugupu.data').joinpath('full_traj.hdf5')) as f:
+        return str(f)
 
 
 @pytest.fixture
