@@ -15,8 +15,13 @@ jobs:
         create-args: >-
           pytest
           pytest-cov
+        init-shell: >-
+          bash
+          powershell
     - name: build
       run: pip install .
+    - name: check-build
+      run: python -c "import kugupu"
     - name: Test with pytest
       run: pytest
     - name: Codecov
