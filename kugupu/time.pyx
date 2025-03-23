@@ -55,8 +55,8 @@ def determine_lifetimes(const double[:, :, :] coupling,
     # maximum number of durations
     # nfrags(nfrags-1)//2 i-j combinations
     # nframes//2 possible lifes per pairing, ie T/F/T/F/T/F
-    d = np.empty(nframes * nfrags * (nfrags-1) // 4, dtype=np.int)
-    o = np.empty(nframes * nfrags * (nfrags-1) // 4, dtype=np.int)
+    d = np.empty(nframes * nfrags * (nfrags-1) // 4, dtype=int)
+    o = np.empty(nframes * nfrags * (nfrags-1) // 4, dtype=int)
     # memory views of Python objects
     d_v = d
     o_v = o
