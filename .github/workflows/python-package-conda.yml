@@ -23,6 +23,6 @@ jobs:
     - name: check-build
       run: python -c "import kugupu"
     - name: Test with pytest
-      run: pytest
+      run: python -m pytest
     - name: Codecov
       uses: codecov/codecov-action@v5.4.0
