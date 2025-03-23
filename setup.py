@@ -22,25 +22,24 @@ if 'MAMBA_ROOT_PREFIX' in os.environ:
         os.path.join(os.environ['MAMBA_ROOT_PREFIX'], 'envs', 'kgp', 'lib')
     )
 
-
 # Define Cython modules
 extensions = [
     Extension(name='kugupu.time',
               sources=['src/kugupu/time.pyx'],
-              extra_compile_args = [
+              extra_compile_args=[
                   '-std=c99', '-ffast-math', '-O3',
               ],
               define_macros=[('CYTHON_TRACE', '1')],
-    ),
+              ),
     Extension(name='kugupu._pyeht',
               sources=['src/kugupu/pyeht.pyx'],
               libraries=['yaehmop_eht', 'lapack', 'blas'],
               library_dirs=lib_dirs,
               include_dirs=include_dirs,
-              extra_compile_args = [
+              extra_compile_args=[
                   '-std=c99', '-ffast-math', '-O3',
               ],
-    )
+              )
 ]
 
 setup(
@@ -56,13 +55,12 @@ setup(
     # Which Python importable modules should be included when your package is installed
     packages=['src/kugupu', "src/kugupu.tests"],
     scripts=['bin/kugupu'],
-    ext_modules = cythonize(extensions,
-                            compiler_directives={'linetrace': True},
-    ),
+    ext_modules=cythonize(extensions,
+                          compiler_directives={'linetrace': True},
+                          ),
     # Optional include package data to ship with your package
     # Comment out this line to prevent the files from being packaged with your software
     # Extend/modify the list to include/exclude other items as need be
-    package_dir={"": "src"},
     package_data={'kugupu': [
         "data/mini.pdb", "data/mini.dcd",
         "data/full_traj.hdf5",
