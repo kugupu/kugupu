@@ -5,6 +5,9 @@ on: [push]
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -13,16 +16,18 @@ jobs:
         environment-file: environment.yml
         cache-environment: true
         create-args: >-
+          python=${{ matrix.python-version }}
+          pip
           pytest
           pytest-cov
-        init-shell: >-
-          bash
-          powershell
+        init-shell: bash
     - name: build
-      run: pip install .
-    - name: check-build
-      run: python -c "import kugupu"
+      shell: bash -el {0}
+      run: |
+        python -m pip install -e . --no-deps --force-reinstall
     - name: Test with pytest
-      run: python -m pytest
+      shell: bash -el {0}
+      run: |
+        python -m pytest
     - name: Codecov
       uses: codecov/codecov-action@v5.4.0
