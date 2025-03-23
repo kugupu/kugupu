@@ -13,12 +13,14 @@ jobs:
     - uses: mamba-org/setup-micromamba@v2.0.4
       with:
         environment-file: environment.yml
+        cache-environment: true
+        create-args: >-
+          pytest
+          pytest-cov
     - name: build
       run: pip install .
     - name: Test with pytest
-      run: |
-        conda install pytest
-        pytest
+      run: pytest
     - name: Codecov
       uses: codecov/codecov-action@v5.4.0
       
