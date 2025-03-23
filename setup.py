@@ -13,6 +13,10 @@ DOCLINES = __doc__.split("\n")
 include_dirs = []
 if 'CONDA_PREFIX' in os.environ:
     include_dirs.append(os.path.join(os.environ['CONDA_PREFIX'], 'include'))
+if 'MAMBA_ROOT_PREFIX' in os.environ:
+    include_dirs.append(
+        os.path.join(os.environ['MAMBA_ROOT_PREFIX'], 'envs', 'kgp', 'include')
+    )   
 
 
 # Define Cython modules
