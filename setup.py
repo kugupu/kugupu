@@ -2,7 +2,7 @@
 kugupu
 KUGUPUUU!
 """
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Build import cythonize
 import versioneer
@@ -53,7 +53,8 @@ setup(
     license='MIT',
 
     # Which Python importable modules should be included when your package is installed
-    packages=['src/kugupu', "src/kugupu.tests"],
+    packages=find_packages(),
+    package_dir={'': 'src'},
     scripts=['bin/kugupu'],
     ext_modules=cythonize(extensions,
                           compiler_directives={'linetrace': True},
