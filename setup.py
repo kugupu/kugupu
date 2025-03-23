@@ -62,4 +62,11 @@ setup(
     # Comment out this line to prevent the files from being packaged with your software
     # Extend/modify the list to include/exclude other items as need be
     include_package_data=True,
+    package_data={"kugupu": [
+        "*.bz2",
+        "*.hdf5",
+        "*.dcd",
+        "*.pdb",
+        "*.yaml",
+    ]},
 )
