@@ -10,13 +10,17 @@ import os
 
 DOCLINES = __doc__.split("\n")
 
+lib_dirs = []
 include_dirs = []
 if 'CONDA_PREFIX' in os.environ:
     include_dirs.append(os.path.join(os.environ['CONDA_PREFIX'], 'include'))
 if 'MAMBA_ROOT_PREFIX' in os.environ:
     include_dirs.append(
         os.path.join(os.environ['MAMBA_ROOT_PREFIX'], 'envs', 'kgp', 'include')
-    )   
+    )
+    lib_dirs.append(
+        os.path.join(os.environ['MAMBA_ROOT_PREFIX'], 'envs', 'kgp', 'lib')
+    )
 
 
 # Define Cython modules
@@ -31,6 +35,7 @@ extensions = [
     Extension(name='kugupu._pyeht',
               sources=['src/kugupu/pyeht.pyx'],
               libraries=['yaehmop_eht', 'lapack', 'blas'],
+              library_dirs=lib_dirs,
               include_dirs=include_dirs,
               extra_compile_args = [
                   '-std=c99', '-ffast-math', '-O3',
