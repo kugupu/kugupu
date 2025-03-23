@@ -1,1 +1,2 @@
 kugupu/_version.py export-subst
+src/kugupu/_version.py export-subst

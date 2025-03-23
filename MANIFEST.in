@@ -1,2 +1,2 @@
 include versioneer.py
-include kugupu/_version.py
+include src/kugupu/_version.py

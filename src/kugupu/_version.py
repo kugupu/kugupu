@@ -53,7 +53,7 @@ def get_config() -> VersioneerConfig:
     cfg.style = "pep440"
     cfg.tag_prefix = ""
     cfg.parentdir_prefix = "None"
-    cfg.versionfile_source = "kugupu/_version.py"
+    cfg.versionfile_source = "src/kugupu/_version.py"
     cfg.verbose = False
     return cfg
 
